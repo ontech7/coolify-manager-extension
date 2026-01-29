@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coolify Manager - Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <img
+          src="/assets/icon-48.png"
+          alt="Coolify Manager Icon"
+          class="logo"
+        />
+        <h1>Coolify Manager</h1>
+      </header>
+
+      <form id="config-form">
+        <div class="form-group">
+          <label for="server-url">Coolify Server URL</label>
+          <input
+            type="url"
+            id="server-url"
+            placeholder="https://coolify.example.com"
+            required
+          />
+          <small>Your Coolify server URL (without /api)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="api-token">API Token</label>
+          <div class="input-with-toggle">
+            <input
+              type="password"
+              id="api-token"
+              placeholder="Your API token"
+              required
+            />
+            <button
+              type="button"
+              id="toggle-token"
+              class="btn-icon"
+              title="Show/Hide"
+            >
+              <svg
+                class="icon icon-eye"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <svg
+                class="icon icon-eye-off hidden"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+                />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </button>
+          </div>
+          <div class="help-box">
+            <strong>How to generate the token:</strong>
+            <ol>
+              <li>
+                Go to <em>Settings → Advanced → API Access</em> and enable the
+                API
+              </li>
+              <li>Go to <em>Keys & Tokens → API Tokens</em></li>
+              <li>
+                Create a new token with permissions: <code>read</code>,
+                <code>write</code>, <code>deploy</code>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="toggle-group">
+            <div class="toggle-info">
+              <label for="notifications-enabled">Notifications</label>
+              <small>Get notified when deployments complete or fail</small>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="notifications-enabled" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button type="button" id="test-connection" class="btn btn-secondary">
+            <svg
+              class="icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            Test Connection
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <svg
+              class="icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
+              />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Save Configuration
+          </button>
+        </div>
+      </form>
+
+      <div id="status-message" class="status-message hidden"></div>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>
