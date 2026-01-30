@@ -18,18 +18,44 @@
   <img src="assets/screenshot.png" alt="Coolify Manager Screenshot" width="600">
 </p>
 
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [API Endpoints Used](#api-endpoints-used)
+- [Privacy](#privacy)
+- [Contributing](#contributing)
+- [License & Credits](#license--credits)
+- [Acknowledgments](#acknowledgments)
+
 ## Features
 
-- **Application List** - View all your Coolify applications
-- **Status Monitoring** - Real-time status display (Running, Stopped, Healthy, Unhealthy)
-- **Quick Actions** - Start, Stop, Restart, and Deploy applications with one click
-- **Log Viewer** - View application logs directly from the popup
+- **Apps Tab** - View all your Coolify applications with detailed information
+  - Application details view with description, FQDN, repository info, and status
+  - Quick actions: Start, Stop, Restart, and Deploy with one click
+  - Real-time status display (Running, Stopped, Healthy, Unhealthy)
+  - View application logs directly from the popup
+- **Deployments Tab** - Monitor all your deployments in one place
+  - Deployment history with status and timestamps
+  - Deployment details view with commit info and logs
+  - Track deployment progress and outcomes
+- **Status Monitoring** - Real-time status indicators with color coding
 - **Notifications** - Get notified when deployments complete or fail
 - **Secure** - Your API token is stored securely in Chrome's sync storage
+
+## Requirements
+
+- Google Chrome (or Chromium-based browser)
+- Coolify server with API access enabled
+- API token with `read`, `write`, and `deploy` permissions
 
 ## Installation
 
 ### From Chrome Web Store
+
+_(wait for approval)_
 
 ### From Source (Developer Mode)
 
@@ -73,34 +99,6 @@
 5. Click **Test Connection** to verify
 6. Click **Save Configuration**
 
-## Usage
-
-### Application List
-
-Click the extension icon to see all your applications. Each application shows:
-
-- Name and description
-- Current status (with color indicator)
-- Action buttons
-
-### Actions
-
-| Action      | Description                  |
-| ----------- | ---------------------------- |
-| **Start**   | Start a stopped application  |
-| **Stop**    | Stop a running application   |
-| **Restart** | Restart the application      |
-| **Deploy**  | Trigger a new deployment     |
-| **Logs**    | View recent application logs |
-
-### Notifications
-
-Enable notifications in Settings to receive alerts when:
-
-- Deployments complete successfully
-- Deployments fail
-- Applications change status
-
 ## API Endpoints Used
 
 | Method | Endpoint                       | Description             |
@@ -112,12 +110,8 @@ Enable notifications in Settings to receive alerts when:
 | GET    | `/applications/{uuid}/restart` | Restart application     |
 | GET    | `/deploy?uuid={uuid}`          | Deploy application      |
 | GET    | `/applications/{uuid}/logs`    | Get application logs    |
-
-## Requirements
-
-- Google Chrome (or Chromium-based browser)
-- Coolify server with API access enabled
-- API token with `read`, `write`, and `deploy` permissions
+| GET    | `/deployments`                 | List all deployments    |
+| GET    | `/deployments/{uuid}`          | Get deployment details  |
 
 ## Privacy
 
