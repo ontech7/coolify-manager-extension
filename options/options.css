@@ -222,7 +222,6 @@ small {
   pointer-events: none;
 }
 
-/* Help box */
 .help-box {
   margin-top: 12px;
   padding: 12px 14px;
@@ -266,7 +265,6 @@ small {
   color: #fbbf24;
 }
 
-/* Toggle group */
 .toggle-group {
   display: flex;
   justify-content: space-between;
@@ -289,7 +287,6 @@ small {
   margin-top: 0;
 }
 
-/* Toggle switch */
 .toggle-switch {
   position: relative;
   display: inline-block;

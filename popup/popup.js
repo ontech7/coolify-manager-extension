@@ -39,27 +39,44 @@ const states = {
   error: document.getElementById("error"),
   emptyList: document.getElementById("empty-list"),
   appList: document.getElementById("app-list"),
+  emptyDeployments: document.getElementById("empty-deployments"),
+  deploymentsList: document.getElementById("deployments-list"),
 };
 
 const elements = {
+  tabsContainer: document.getElementById("tabs-container"),
+  tabBtns: document.querySelectorAll(".tab-btn"),
   refreshBtn: document.getElementById("refresh-btn"),
   openOptionsBtn: document.getElementById("open-options"),
   retryBtn: document.getElementById("retry-btn"),
   settingsBtn: document.getElementById("settings-btn"),
   errorMessage: document.getElementById("error-message"),
+  loadingText: document.getElementById("loading-text"),
   applications: document.getElementById("applications"),
+  deployments: document.getElementById("deployments"),
   logsModal: document.getElementById("logs-modal"),
   logsTitle: document.getElementById("logs-title"),
   logsContent: document.getElementById("logs-content"),
   logsClose: document.getElementById("logs-close"),
   logsRefresh: document.getElementById("logs-refresh"),
+  detailsModal: document.getElementById("details-modal"),
+  detailsTitle: document.getElementById("details-title"),
+  detailsContent: document.getElementById("details-content"),
+  detailsClose: document.getElementById("details-close"),
 };
 
 let currentLogsApp = null;
+let currentTab = "apps";
 
 function showState(stateName) {
   Object.entries(states).forEach(([name, element]) => {
     element.classList.toggle("hidden", name !== stateName);
+  });
+}
+
+function hideAllStates() {
+  Object.values(states).forEach((element) => {
+    element.classList.add("hidden");
   });
 }
 
@@ -72,7 +89,21 @@ async function isConfigured() {
   return !!(config.serverUrl && config.apiToken);
 }
 
+function switchTab(tab) {
+  currentTab = tab;
+  elements.tabBtns.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+
+  if (tab === "apps") {
+    loadApplications();
+  } else if (tab === "deployments") {
+    loadDeployments();
+  }
+}
+
 async function loadApplications() {
+  elements.loadingText.textContent = "Loading applications...";
   showState("loading");
   elements.refreshBtn.classList.add("spinning");
 
@@ -102,6 +133,41 @@ async function loadApplications() {
   }
 }
 
+async function loadDeployments() {
+  elements.loadingText.textContent = "Loading deployments...";
+  showState("loading");
+  elements.refreshBtn.classList.add("spinning");
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "getDeployments",
+    });
+
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+
+    let deployments = response.data;
+
+    if (!deployments || deployments.length === 0) {
+      showState("emptyDeployments");
+      return;
+    }
+
+    deployments = deployments
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 10);
+
+    renderDeployments(deployments);
+    showState("deploymentsList");
+  } catch (error) {
+    elements.errorMessage.textContent = error.message;
+    showState("error");
+  } finally {
+    elements.refreshBtn.classList.remove("spinning");
+  }
+}
+
 function renderApplications(apps) {
   elements.applications.innerHTML = apps
     .map((app) => createAppCard(app))
@@ -114,6 +180,22 @@ function renderApplications(apps) {
   elements.applications.querySelectorAll(".logs-btn").forEach((btn) => {
     btn.addEventListener("click", handleShowLogs);
   });
+
+  elements.applications.querySelectorAll(".app-name-link").forEach((link) => {
+    link.addEventListener("click", handleShowAppDetails);
+  });
+}
+
+function renderDeployments(deployments) {
+  elements.deployments.innerHTML = deployments
+    .map((deploy) => createDeploymentCard(deploy))
+    .join("");
+
+  elements.deployments
+    .querySelectorAll(".deployment-name-link")
+    .forEach((link) => {
+      link.addEventListener("click", handleShowDeploymentDetails);
+    });
 }
 
 function createAppCard(app) {
@@ -127,7 +209,7 @@ function createAppCard(app) {
     <div class="app-card" data-uuid="${app.uuid}" data-name="${app.name}">
       <div class="app-header">
         <div class="app-info">
-          <div class="app-name" title="${app.name}">${app.name}</div>
+          <a href="#" class="app-name-link" data-uuid="${app.uuid}" title="${app.name}">${app.name}</a>
           <div class="app-type">${app.type || "application"}</div>
         </div>
         <div class="app-status ${statusClass}">
@@ -161,6 +243,104 @@ function createAppCard(app) {
       </div>
     </div>
   `;
+}
+
+function createDeploymentCard(deploy) {
+  const status = deploy.status || "unknown";
+  const statusClass = getDeploymentStatusClass(status);
+  const displayStatus = formatDeploymentStatus(status);
+  const appName = deploy.application_name || "Unknown App";
+  const createdAt = formatDate(deploy.created_at);
+
+  return `
+    <div class="deployment-card" data-uuid="${deploy.deployment_uuid}">
+      <div class="deployment-header">
+        <div class="deployment-info">
+          <a href="#" class="deployment-name-link" data-uuid="${deploy.deployment_uuid}" data-deploy='${JSON.stringify(deploy).replace(/'/g, "&#39;")}' title="${appName}">
+            ${appName}
+          </a>
+          <div class="deployment-meta">
+            <span class="deployment-date">${createdAt}</span>
+            ${deploy.commit ? `<span class="deployment-commit" title="${deploy.commit}">${deploy.commit.substring(0, 7)}</span>` : ""}
+          </div>
+        </div>
+        <div class="deployment-status ${statusClass}">
+          <span class="status-dot"></span>
+          ${displayStatus}
+        </div>
+      </div>
+      ${deploy.commit_message ? `<div class="deployment-message" title="${escapeHtml(deploy.commit_message)}">${escapeHtml(deploy.commit_message)}</div>` : ""}
+    </div>
+  `;
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now - date;
+
+  if (diff < 60000) {
+    return "Just now";
+  }
+
+  if (diff < 3600000) {
+    const mins = Math.floor(diff / 60000);
+    return `${mins}m ago`;
+  }
+
+  if (diff < 86400000) {
+    const hours = Math.floor(diff / 3600000);
+    return `${hours}h ago`;
+  }
+
+  if (diff < 604800000) {
+    const days = Math.floor(diff / 86400000);
+    return `${days}d ago`;
+  }
+
+  return date.toLocaleDateString();
+}
+
+function getDeploymentStatusClass(status) {
+  const lowerStatus = status.toLowerCase();
+
+  if (
+    lowerStatus === "finished" ||
+    lowerStatus === "success" ||
+    lowerStatus === "completed"
+  ) {
+    return "status-success";
+  }
+  if (
+    lowerStatus === "failed" ||
+    lowerStatus === "error" ||
+    lowerStatus === "cancelled" ||
+    lowerStatus === "canceled"
+  ) {
+    return "status-failed";
+  }
+  if (
+    lowerStatus === "in_progress" ||
+    lowerStatus === "running" ||
+    lowerStatus === "building" ||
+    lowerStatus === "deploying"
+  ) {
+    return "status-in-progress";
+  }
+  if (lowerStatus === "queued" || lowerStatus === "pending") {
+    return "status-queued";
+  }
+  return "status-unknown";
+}
+
+function formatDeploymentStatus(status) {
+  if (!status) return "Unknown";
+  return status
+    .replace(/_/g, " ")
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 function formatStatus(status) {
@@ -207,6 +387,121 @@ function getStatusClass(status) {
     return "status-stopped";
   }
   return "status-unknown";
+}
+
+async function handleShowAppDetails(e) {
+  e.preventDefault();
+  const link = e.currentTarget;
+  const uuid = link.dataset.uuid;
+
+  elements.detailsTitle.textContent = "Application Details";
+  elements.detailsContent.innerHTML =
+    '<div class="details-loading">Loading...</div>';
+  elements.detailsModal.classList.remove("hidden");
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "getApplication",
+      data: { uuid },
+    });
+
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+
+    const app = response.data;
+    elements.detailsTitle.textContent = app.name || "Application Details";
+    elements.detailsContent.innerHTML = renderAppDetails(app);
+  } catch (error) {
+    elements.detailsContent.innerHTML = `<div class="details-error">Error: ${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function handleShowDeploymentDetails(e) {
+  e.preventDefault();
+  const link = e.currentTarget;
+  const deployData = JSON.parse(link.dataset.deploy);
+
+  elements.detailsTitle.textContent = "Deployment Details";
+  elements.detailsContent.innerHTML = renderDeploymentDetails(deployData);
+  elements.detailsModal.classList.remove("hidden");
+}
+
+function renderAppDetails(app) {
+  const details = [
+    { label: "Name", value: app.name },
+    { label: "UUID", value: app.uuid, mono: true },
+    { label: "Status", value: app.status || "Unknown" },
+    { label: "Type", value: app.type || "application" },
+    { label: "FQDN", value: app.fqdn, link: true },
+    { label: "Repository", value: app.git_repository },
+    { label: "Branch", value: app.git_branch },
+    { label: "Build Pack", value: app.build_pack },
+    {
+      label: "Created",
+      value: app.created_at ? new Date(app.created_at).toLocaleString() : null,
+    },
+    {
+      label: "Updated",
+      value: app.updated_at ? new Date(app.updated_at).toLocaleString() : null,
+    },
+  ];
+
+  return renderDetailsTable(details);
+}
+
+function renderDeploymentDetails(deploy) {
+  const details = [
+    { label: "Application", value: deploy.application_name },
+    { label: "Deployment UUID", value: deploy.deployment_uuid, mono: true },
+    { label: "Status", value: deploy.status },
+    { label: "Server", value: deploy.server_name },
+    { label: "Commit", value: deploy.commit, mono: true },
+    { label: "Commit Message", value: deploy.commit_message },
+    { label: "Git Type", value: deploy.git_type },
+    { label: "Is Webhook", value: deploy.is_webhook ? "Yes" : "No" },
+    { label: "Is API", value: deploy.is_api ? "Yes" : "No" },
+    { label: "Force Rebuild", value: deploy.force_rebuild ? "Yes" : "No" },
+    { label: "Restart Only", value: deploy.restart_only ? "Yes" : "No" },
+    {
+      label: "Created",
+      value: deploy.created_at
+        ? new Date(deploy.created_at).toLocaleString()
+        : null,
+    },
+    {
+      label: "Updated",
+      value: deploy.updated_at
+        ? new Date(deploy.updated_at).toLocaleString()
+        : null,
+    },
+  ];
+
+  return renderDetailsTable(details);
+}
+
+function renderDetailsTable(details) {
+  const rows = details
+    .filter((d) => d.value !== null && d.value !== undefined && d.value !== "")
+    .map((d) => {
+      let valueHtml = escapeHtml(String(d.value));
+      if (d.mono) {
+        valueHtml = `<code>${valueHtml}</code>`;
+      }
+      if (d.link && d.value) {
+        const url = d.value.startsWith("http") ? d.value : `https://${d.value}`;
+        valueHtml = `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${valueHtml}</a>`;
+      }
+      return `
+      <tr>
+        <td class="detail-label">${escapeHtml(d.label)}</td>
+        <td class="detail-value">${valueHtml}</td>
+      </tr>
+    `;
+    })
+    .join("");
+
+  return `<table class="details-table">${rows}</table>`;
 }
 
 async function handleAction(e) {
@@ -296,26 +591,53 @@ function closeLogs() {
   currentLogsApp = null;
 }
 
+function closeDetails() {
+  elements.detailsModal.classList.add("hidden");
+}
+
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
 
+function refreshCurrentTab() {
+  if (currentTab === "apps") {
+    loadApplications();
+  } else if (currentTab === "deployments") {
+    loadDeployments();
+  }
+}
+
 async function init() {
-  elements.refreshBtn.addEventListener("click", loadApplications);
+  elements.refreshBtn.addEventListener("click", refreshCurrentTab);
   elements.openOptionsBtn.addEventListener("click", openOptions);
-  elements.retryBtn.addEventListener("click", loadApplications);
+  elements.retryBtn.addEventListener("click", refreshCurrentTab);
   elements.settingsBtn.addEventListener("click", openOptions);
   elements.logsClose.addEventListener("click", closeLogs);
   elements.logsRefresh.addEventListener("click", refreshLogs);
+  elements.detailsClose.addEventListener("click", closeDetails);
+
   elements.logsModal.addEventListener("click", (e) => {
     if (e.target === elements.logsModal) {
       closeLogs();
     }
   });
 
+  elements.detailsModal.addEventListener("click", (e) => {
+    if (e.target === elements.detailsModal) {
+      closeDetails();
+    }
+  });
+
+  elements.tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      switchTab(btn.dataset.tab);
+    });
+  });
+
   if (await isConfigured()) {
+    elements.tabsContainer.classList.remove("hidden");
     loadApplications();
   } else {
     showState("notConfigured");

@@ -59,6 +59,15 @@ async function handleMessage(request) {
     case "getApplicationLogs":
       return await getApplicationLogs(data.uuid, data.lines);
 
+    case "getDeployments":
+      return await getDeployments();
+
+    case "getDeploymentsByApp":
+      return await getDeploymentsByApp(data.uuid, data.skip, data.take);
+
+    case "getDeployment":
+      return await getDeployment(data.uuid);
+
     case "setNotificationsEnabled":
       return await setNotificationsEnabled(data.enabled);
 
@@ -138,6 +147,24 @@ async function getApplicationLogs(uuid, lines = 100) {
   const api = await createApiInstance();
   const result = await api.getApplicationLogs(uuid, lines);
   return { success: true, data: result };
+}
+
+async function getDeployments() {
+  const api = await createApiInstance();
+  const deployments = await api.getDeployments();
+  return { success: true, data: deployments };
+}
+
+async function getDeploymentsByApp(uuid, skip = 0, take = 10) {
+  const api = await createApiInstance();
+  const deployments = await api.getDeploymentsByApp(uuid, skip, take);
+  return { success: true, data: deployments };
+}
+
+async function getDeployment(uuid) {
+  const api = await createApiInstance();
+  const deployment = await api.getDeployment(uuid);
+  return { success: true, data: deployment };
 }
 
 async function setNotificationsEnabled(enabled) {
