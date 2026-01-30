@@ -68,6 +68,9 @@ async function handleMessage(request) {
     case "getDeployment":
       return await getDeployment(data.uuid);
 
+    case "cancelDeployment":
+      return await cancelDeployment(data.uuid, data.appName);
+
     case "setNotificationsEnabled":
       return await setNotificationsEnabled(data.enabled);
 
@@ -165,6 +168,17 @@ async function getDeployment(uuid) {
   const api = await createApiInstance();
   const deployment = await api.getDeployment(uuid);
   return { success: true, data: deployment };
+}
+
+async function cancelDeployment(uuid, appName) {
+  const api = await createApiInstance();
+  const result = await api.cancelDeployment(uuid);
+  showNotification(
+    "Deployment Cancelled",
+    `${appName || "Deployment"} has been cancelled.`,
+    "info",
+  );
+  return { success: true, data: result };
 }
 
 async function setNotificationsEnabled(enabled) {

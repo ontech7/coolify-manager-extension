@@ -196,6 +196,10 @@ function renderDeployments(deployments) {
     .forEach((link) => {
       link.addEventListener("click", handleShowDeploymentDetails);
     });
+
+  elements.deployments.querySelectorAll(".cancel-deploy-btn").forEach((btn) => {
+    btn.addEventListener("click", handleCancelDeployment);
+  });
 }
 
 function createAppCard(app) {
@@ -251,6 +255,14 @@ function createDeploymentCard(deploy) {
   const displayStatus = formatDeploymentStatus(status);
   const appName = deploy.application_name || "Unknown App";
   const createdAt = formatDate(deploy.created_at);
+  const lowerStatus = status.toLowerCase();
+  const isInProgress =
+    lowerStatus === "in_progress" ||
+    lowerStatus === "running" ||
+    lowerStatus === "building" ||
+    lowerStatus === "deploying" ||
+    lowerStatus === "queued" ||
+    lowerStatus === "pending";
 
   return `
     <div class="deployment-card" data-uuid="${deploy.deployment_uuid}">
@@ -264,9 +276,12 @@ function createDeploymentCard(deploy) {
             ${deploy.commit ? `<span class="deployment-commit" title="${deploy.commit}">${deploy.commit.substring(0, 7)}</span>` : ""}
           </div>
         </div>
-        <div class="deployment-status ${statusClass}">
-          <span class="status-dot"></span>
-          ${displayStatus}
+        <div class="deployment-actions">
+          ${isInProgress ? `<button class="cancel-deploy-btn" data-uuid="${deploy.deployment_uuid}" data-name="${appName}" title="Cancel Deployment">${icons.x}</button>` : ""}
+          <div class="deployment-status ${statusClass}">
+            <span class="status-dot"></span>
+            ${displayStatus}
+          </div>
         </div>
       </div>
       ${deploy.commit_message ? `<div class="deployment-message" title="${escapeHtml(deploy.commit_message)}">${escapeHtml(deploy.commit_message)}</div>` : ""}
@@ -414,6 +429,36 @@ async function handleShowAppDetails(e) {
     elements.detailsContent.innerHTML = renderAppDetails(app);
   } catch (error) {
     elements.detailsContent.innerHTML = `<div class="details-error">Error: ${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function handleCancelDeployment(e) {
+  e.stopPropagation();
+
+  const btn = e.currentTarget;
+  const uuid = btn.dataset.uuid;
+  const appName = btn.dataset.name;
+
+  btn.disabled = true;
+  btn.innerHTML = icons.loader;
+  btn.classList.add("spinning");
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "cancelDeployment",
+      data: { uuid, appName },
+    });
+
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+
+    loadDeployments();
+  } catch (error) {
+    alert(`Failed to cancel deployment: ${error.message}`);
+    btn.disabled = false;
+    btn.innerHTML = icons.x;
+    btn.classList.remove("spinning");
   }
 }
 
