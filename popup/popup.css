@@ -354,6 +354,13 @@ h1 {
 
 .app-actions {
   display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.actions-left,
+.actions-right {
+  display: flex;
   gap: 6px;
 }
 
@@ -601,7 +608,26 @@ footer {
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#auto-refresh-btn.active {
+  color: #6366f1;
+}
+
+#auto-refresh-btn.active svg {
+  animation: spin 2s linear infinite;
+}
+
+#open-coolify-btn {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#open-coolify-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .applications::-webkit-scrollbar {
@@ -625,7 +651,7 @@ footer {
   flex-shrink: 0;
 }
 
-.logs-btn {
+.util-btn {
   width: 28px;
   height: 28px;
   display: flex;
@@ -637,12 +663,16 @@ footer {
   color: #a1a1aa;
   cursor: pointer;
   transition: all 0.2s;
-  margin-left: 4px;
 }
 
-.logs-btn:hover {
+.util-btn:hover:not(:disabled) {
   background: rgba(139, 92, 246, 0.2);
   color: #a78bfa;
+}
+
+.util-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .modal {

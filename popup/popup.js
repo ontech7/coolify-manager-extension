@@ -31,6 +31,11 @@ const icons = {
     <line x1="18" y1="6" x2="6" y2="18"/>
     <line x1="6" y1="6" x2="18" y2="18"/>
   </svg>`,
+  externalLink: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+    <polyline points="15 3 21 3 21 9"/>
+    <line x1="10" y1="14" x2="21" y2="3"/>
+  </svg>`,
 };
 
 const states = {
@@ -49,7 +54,9 @@ const elements = {
   refreshBtn: document.getElementById("refresh-btn"),
   openOptionsBtn: document.getElementById("open-options"),
   retryBtn: document.getElementById("retry-btn"),
+  autoRefreshBtn: document.getElementById("auto-refresh-btn"),
   settingsBtn: document.getElementById("settings-btn"),
+  openCoolifyBtn: document.getElementById("open-coolify-btn"),
   errorMessage: document.getElementById("error-message"),
   loadingText: document.getElementById("loading-text"),
   applications: document.getElementById("applications"),
@@ -67,6 +74,9 @@ const elements = {
 
 let currentLogsApp = null;
 let currentTab = "apps";
+let serverUrl = "";
+let autoRefreshInterval = null;
+let autoRefreshEnabled = false;
 
 function showState(stateName) {
   Object.entries(states).forEach(([name, element]) => {
@@ -84,9 +94,40 @@ function openOptions() {
   chrome.runtime.openOptionsPage();
 }
 
+function openCoolify() {
+  if (!serverUrl) return;
+  chrome.tabs.create({ url: serverUrl });
+}
+
 async function isConfigured() {
   const config = await chrome.storage.sync.get(["serverUrl", "apiToken"]);
+  if (config.serverUrl) {
+    serverUrl = config.serverUrl.replace(/\/$/, "");
+  }
   return !!(config.serverUrl && config.apiToken);
+}
+
+function openAppSite(fqdn) {
+  if (!fqdn) return;
+  const firstUrl = fqdn.split(",")[0].trim();
+  if (!firstUrl) return;
+  const url = firstUrl.startsWith("http") ? firstUrl : `https://${firstUrl}`;
+  chrome.tabs.create({ url });
+}
+
+function toggleAutoRefresh() {
+  autoRefreshEnabled = !autoRefreshEnabled;
+
+  if (autoRefreshEnabled) {
+    elements.autoRefreshBtn.classList.add("active");
+    autoRefreshInterval = setInterval(refreshCurrentTab, 10000);
+  } else {
+    elements.autoRefreshBtn.classList.remove("active");
+    if (autoRefreshInterval) {
+      clearInterval(autoRefreshInterval);
+      autoRefreshInterval = null;
+    }
+  }
 }
 
 function switchTab(tab) {
@@ -177,12 +218,19 @@ function renderApplications(apps) {
     btn.addEventListener("click", handleAction);
   });
 
-  elements.applications.querySelectorAll(".logs-btn").forEach((btn) => {
+  elements.applications.querySelectorAll(".app-name-link").forEach((link) => {
+    link.addEventListener("click", handleShowAppDetails);
+  });
+
+  elements.applications.querySelectorAll(".open-logs-btn").forEach((btn) => {
     btn.addEventListener("click", handleShowLogs);
   });
 
-  elements.applications.querySelectorAll(".app-name-link").forEach((link) => {
-    link.addEventListener("click", handleShowAppDetails);
+  elements.applications.querySelectorAll(".open-site-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openAppSite(btn.dataset.fqdn);
+    });
   });
 }
 
@@ -208,6 +256,7 @@ function createAppCard(app) {
   const isRunning = status.includes("running");
   const deployLabel = isRunning ? "Redeploy" : "Deploy";
   const displayStatus = formatStatus(status);
+  const hasFqdn = app.fqdn && app.fqdn.trim();
 
   return `
     <div class="app-card" data-uuid="${app.uuid}" data-name="${app.name}">
@@ -222,28 +271,33 @@ function createAppCard(app) {
         </div>
       </div>
       <div class="app-actions">
-        <button class="action-btn deploy" data-action="deploy" data-uuid="${app.uuid}" data-name="${app.name}" title="${deployLabel}">
-          ${icons.rocket}
-        </button>
-        <button class="action-btn restart" data-action="restart" data-uuid="${app.uuid}" data-name="${app.name}" title="Restart" ${!isRunning ? "disabled" : ""}>
-          ${icons.refreshCw}
-        </button>
-        ${
-          isRunning
-            ? `
-          <button class="action-btn stop" data-action="stop" data-uuid="${app.uuid}" data-name="${app.name}" title="Stop">
-            ${icons.square}
+        <div class="actions-left">
+          <button class="action-btn deploy" data-action="deploy" data-uuid="${app.uuid}" data-name="${app.name}" title="${deployLabel}">
+            ${icons.rocket}
           </button>
-        `
-            : `
-          <button class="action-btn start" data-action="start" data-uuid="${app.uuid}" data-name="${app.name}" title="Start">
-            ${icons.play}
+          <button class="action-btn restart" data-action="restart" data-uuid="${app.uuid}" data-name="${app.name}" title="Restart" ${!isRunning ? "disabled" : ""}>
+            ${icons.refreshCw}
           </button>
-        `
-        }
-        <button class="logs-btn" data-uuid="${app.uuid}" data-name="${app.name}" title="View Logs">
-          ${icons.fileText}
-        </button>
+          ${
+            isRunning
+              ? `
+            <button class="action-btn stop" data-action="stop" data-uuid="${app.uuid}" data-name="${app.name}" title="Stop">
+              ${icons.square}
+            </button>
+          `
+              : `
+            <button class="action-btn start" data-action="start" data-uuid="${app.uuid}" data-name="${app.name}" title="Start">
+              ${icons.play}
+            </button>
+          `
+          }
+        </div>
+        <div class="actions-right">
+          <button class="open-logs-btn util-btn" data-uuid="${app.uuid}" data-name="${app.name}" title="View Logs">
+            ${icons.fileText}
+          </button>
+          ${hasFqdn ? `<button class="util-btn open-site-btn" data-fqdn="${escapeHtml(app.fqdn)}" title="Open Website" ${!isRunning ? "disabled" : ""}>${icons.externalLink}</button>` : ""}
+        </div>
       </div>
     </div>
   `;
@@ -658,7 +712,9 @@ async function init() {
   elements.refreshBtn.addEventListener("click", refreshCurrentTab);
   elements.openOptionsBtn.addEventListener("click", openOptions);
   elements.retryBtn.addEventListener("click", refreshCurrentTab);
+  elements.autoRefreshBtn.addEventListener("click", toggleAutoRefresh);
   elements.settingsBtn.addEventListener("click", openOptions);
+  elements.openCoolifyBtn.addEventListener("click", openCoolify);
   elements.logsClose.addEventListener("click", closeLogs);
   elements.logsRefresh.addEventListener("click", refreshLogs);
   elements.detailsClose.addEventListener("click", closeDetails);
@@ -683,8 +739,10 @@ async function init() {
 
   if (await isConfigured()) {
     elements.tabsContainer.classList.remove("hidden");
+    elements.openCoolifyBtn.disabled = !serverUrl;
     loadApplications();
   } else {
+    elements.openCoolifyBtn.disabled = true;
     showState("notConfigured");
   }
 }
