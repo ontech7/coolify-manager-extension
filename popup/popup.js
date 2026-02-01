@@ -72,11 +72,13 @@ const elements = {
   detailsClose: document.getElementById("details-close"),
 };
 
+const AUTO_REFRESH_INTERVAL = 10000; // 10 seconds
+
 let currentLogsApp = null;
 let currentTab = "apps";
 let serverUrl = "";
 let autoRefreshInterval = null;
-let autoRefreshEnabled = false;
+let autoRefreshEnabled = true;
 
 function showState(stateName) {
   Object.entries(states).forEach(([name, element]) => {
@@ -100,10 +102,19 @@ function openCoolify() {
 }
 
 async function isConfigured() {
-  const config = await chrome.storage.sync.get(["serverUrl", "apiToken"]);
+  const config = await chrome.storage.sync.get([
+    "serverUrl",
+    "apiToken",
+    "autoRefreshEnabled",
+  ]);
+
   if (config.serverUrl) {
     serverUrl = config.serverUrl.replace(/\/$/, "");
   }
+
+  autoRefreshEnabled =
+    config.autoRefreshEnabled === undefined ? true : config.autoRefreshEnabled;
+
   return !!(config.serverUrl && config.apiToken);
 }
 
@@ -118,9 +129,11 @@ function openAppSite(fqdn) {
 function toggleAutoRefresh() {
   autoRefreshEnabled = !autoRefreshEnabled;
 
+  chrome.storage.sync.set({ autoRefreshEnabled });
+
   if (autoRefreshEnabled) {
     elements.autoRefreshBtn.classList.add("active");
-    autoRefreshInterval = setInterval(refreshCurrentTab, 10000);
+    autoRefreshInterval = setInterval(refreshCurrentTab, AUTO_REFRESH_INTERVAL);
   } else {
     elements.autoRefreshBtn.classList.remove("active");
     if (autoRefreshInterval) {
@@ -740,6 +753,15 @@ async function init() {
   if (await isConfigured()) {
     elements.tabsContainer.classList.remove("hidden");
     elements.openCoolifyBtn.disabled = !serverUrl;
+
+    if (autoRefreshEnabled) {
+      elements.autoRefreshBtn.classList.add("active");
+      autoRefreshInterval = setInterval(
+        refreshCurrentTab,
+        AUTO_REFRESH_INTERVAL,
+      );
+    }
+
     loadApplications();
   } else {
     elements.openCoolifyBtn.disabled = true;
