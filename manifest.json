@@ -4,8 +4,7 @@
   "version": "1.2.0",
   "description": "Manage your Coolify projects directly from your browser",
   "permissions": [
-    "storage",
-    "notifications"
+    "storage"
   ],
   "host_permissions": [
     "http://*/*",

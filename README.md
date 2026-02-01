@@ -42,7 +42,6 @@
   - Deployment details view with commit info and logs
   - Track deployment progress and outcomes
 - **Status Monitoring** - Real-time status indicators with color coding
-- **Notifications** - Get notified when deployments complete or fail
 - **Secure** - Your API token is stored securely in Chrome's sync storage
 
 ## Requirements

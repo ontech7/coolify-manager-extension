@@ -4,7 +4,6 @@ const apiTokenInput = document.getElementById("api-token");
 const toggleTokenBtn = document.getElementById("toggle-token");
 const testConnectionBtn = document.getElementById("test-connection");
 const statusMessage = document.getElementById("status-message");
-const notificationsToggle = document.getElementById("notifications-enabled");
 
 const iconEye = toggleTokenBtn.querySelector(".icon-eye");
 const iconEyeOff = toggleTokenBtn.querySelector(".icon-eye-off");
@@ -19,11 +18,7 @@ function hideStatus() {
 }
 
 async function loadConfig() {
-  const config = await chrome.storage.sync.get([
-    "serverUrl",
-    "apiToken",
-    "notificationsEnabled",
-  ]);
+  const config = await chrome.storage.sync.get(["serverUrl", "apiToken"]);
 
   if (config.serverUrl) {
     serverUrlInput.value = config.serverUrl;
@@ -32,8 +27,6 @@ async function loadConfig() {
   if (config.apiToken) {
     apiTokenInput.value = config.apiToken;
   }
-
-  notificationsToggle.checked = config.notificationsEnabled !== false;
 }
 
 async function saveConfig(serverUrl, apiToken) {
@@ -41,10 +34,6 @@ async function saveConfig(serverUrl, apiToken) {
     serverUrl: serverUrl.replace(/\/$/, ""),
     apiToken,
   });
-}
-
-async function saveNotificationsSetting(enabled) {
-  await chrome.storage.sync.set({ notificationsEnabled: enabled });
 }
 
 async function testConnection() {
@@ -116,17 +105,8 @@ async function handleSubmit(e) {
   }
 }
 
-async function handleNotificationsChange() {
-  try {
-    await saveNotificationsSetting(notificationsToggle.checked);
-  } catch (error) {
-    console.error("Failed to save notifications setting:", error);
-  }
-}
-
 form.addEventListener("submit", handleSubmit);
 testConnectionBtn.addEventListener("click", testConnection);
 toggleTokenBtn.addEventListener("click", toggleTokenVisibility);
-notificationsToggle.addEventListener("change", handleNotificationsChange);
 
 loadConfig();
