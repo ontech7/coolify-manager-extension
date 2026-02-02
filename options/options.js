@@ -4,6 +4,7 @@ const apiTokenInput = document.getElementById("api-token");
 const toggleTokenBtn = document.getElementById("toggle-token");
 const testConnectionBtn = document.getElementById("test-connection");
 const statusMessage = document.getElementById("status-message");
+const versionEl = document.getElementById("version");
 
 const iconEye = toggleTokenBtn.querySelector(".icon-eye");
 const iconEyeOff = toggleTokenBtn.querySelector(".icon-eye-off");
@@ -108,5 +109,8 @@ async function handleSubmit(e) {
 form.addEventListener("submit", handleSubmit);
 testConnectionBtn.addEventListener("click", testConnection);
 toggleTokenBtn.addEventListener("click", toggleTokenVisibility);
+
+const manifest = chrome.runtime.getManifest();
+versionEl.textContent = `v${manifest.version}`;
 
 loadConfig();
