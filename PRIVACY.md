@@ -1,11 +1,11 @@
 # Privacy Policy
 
-**Coolify Manager** — Chrome Extension
+**Coolify Manager** — Chrome Extension  
 Last updated: February 3, 2026
 
 ## Overview
 
-Coolify Manager is a browser extension that allows users to manage their self-hosted [Coolify](https://coolify.io/) applications directly from the browser. This privacy policy describes how the extension handles user data.
+Coolify Manager is a browser extension that allows users to manage their cloud or self-hosted [Coolify](https://coolify.io/) applications directly from the browser. This privacy policy describes how the extension handles user data. All rights are 
 
 ## Data Collection
 
@@ -52,6 +52,12 @@ Coolify Manager does **not** sell, transfer, or disclose any user data to third 
 ## Changes to This Policy
 
 Any changes to this privacy policy will be reflected in this document with an updated date. Continued use of the extension after changes constitutes acceptance of the revised policy.
+
+## Disclaimer
+
+**Coolify** is a third-party platform owned and operated by its respective owners.
+**Coolify Manager** is an independent browser extension and is not affiliated with, endorsed by, or officially connected to Coolify.
+The extension acts solely as a client-side tool to provide a faster and more convenient way to interact with and manage existing Coolify instances configured by the user.
 
 ## Contact
 
