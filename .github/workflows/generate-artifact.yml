@@ -1,4 +1,4 @@
-name: Build Extension
+name: Generate Artifact
 
 on:
   workflow_dispatch:
@@ -36,17 +36,24 @@ jobs:
           echo "Files included in the extension:"
           unzip -l coolify-manager-extension.zip
 
-      - name: Upload artifact
+      - name: Get latest release
+        id: get_release
+        run: |
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName,id --jq '.[0]')
+          RELEASE_TAG=$(echo $LATEST_RELEASE | jq -r '.tagName')
+          echo "tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "Latest release tag: $RELEASE_TAG"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact to latest release
+        run: |
+          gh release upload ${{ steps.get_release.outputs.tag }} coolify-manager-extension.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact (for GitHub Actions)
         uses: actions/upload-artifact@v4
         with:
           name: coolify-manager-extension
           path: coolify-manager-extension.zip
-
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: coolify-manager-extension.zip
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
