@@ -30,7 +30,7 @@
 
 ### From Chrome Web Store
 
-_(wait for approval)_
+You can download it from [here](https://chromewebstore.google.com/detail/coolify-manager/dmcclgoafojpjaflnggcnmhbenplnmpi)
 
 ### From Source (Developer Mode)
 
