@@ -1,14 +1,24 @@
+## v1.3.0
+
+- Add multiple Coolify instance management in settings
+- Add CSS variables for better maintainability
+- Added Github Action for building .zip file
+- Align user interface design to the App counterpart
+- Move storage logic to `coolify-storage.js`
+- Adjust Lucide icons
+- Update PRIVACY.md with latest changes
+
 ## v1.2.0
 
-- feat: add cancel deployment button
-- feat: add external link to application
-- feat: add 'open coolify' link to footer
-- feat: add autorefresh every 10s to footer
+- Add cancel deployment button
+- Add external link to application
+- Add 'Open in Coolify' link to footer
+- Add auto-refresh every 10s to footer
 
 ## v1.1.0
 
-- feat: add deployments management features
-- feat: add apps and deployment detail modals
+- Add deployments management features
+- Add apps and deployment detail modals
 
 ## v1.0.0
 

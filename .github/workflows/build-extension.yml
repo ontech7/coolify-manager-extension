@@ -1,0 +1,53 @@
+name: Build Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create extension package
+        run: |
+          # Create a temporary directory for the extension files
+          mkdir -p extension-build
+          
+          # Copy all files except the ones we want to exclude
+          rsync -av --progress . extension-build/ \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='*.md' \
+            --exclude='assets/screenshot*.png' \
+            --exclude='assets/small-promo-title.png' \
+            --exclude='extension-build'
+          
+          # Create the zip file
+          cd extension-build
+          zip -r ../coolify-manager-extension.zip .
+          cd ..
+          
+          # Show what was included
+          echo "Files included in the extension:"
+          unzip -l coolify-manager-extension.zip
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coolify-manager-extension
+          path: coolify-manager-extension.zip
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: coolify-manager-extension.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

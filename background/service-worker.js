@@ -1,20 +1,16 @@
+import { getActiveInstance } from "../lib/config-storage.js";
 import { CoolifyAPI } from "../lib/coolify-api.js";
 
-async function getConfig() {
-  const result = await chrome.storage.sync.get(["serverUrl", "apiToken"]);
-  return result;
-}
-
 async function createApiInstance() {
-  const config = await getConfig();
+  const instance = await getActiveInstance();
 
-  if (!config.serverUrl || !config.apiToken) {
+  if (!instance) {
     throw new Error(
-      "Configuration missing. Go to options to configure the server.",
+      "Configuration missing. Go to options to add a Coolify instance.",
     );
   }
 
-  return new CoolifyAPI(config.serverUrl, config.apiToken);
+  return new CoolifyAPI(instance.serverUrl, instance.apiToken);
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

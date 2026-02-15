@@ -5,12 +5,12 @@
 <h1 align="center">Coolify Manager</h1>
 
 <p align="center">
-  A Chrome extension to manage your <a href="https://coolify.io/">Coolify</a> applications directly from your browser.
+  A Chrome extension to manage your <a href="https://coolify.io/">Coolify</a> instances directly from your browser.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Chrome-Extension-DD5144?logo=googlechrome&logoColor=white" alt="Chrome Extension">
- <img src="https://img.shields.io/badge/v-1.2.0-blue" alt="App Version">
+ <img src="https://img.shields.io/badge/v-1.3.0-blue" alt="App Version">
   <img src="https://img.shields.io/badge/License-MIT-61dafb" alt="License">
 </p>
 
@@ -20,6 +20,7 @@
 
 ## Highlights
 
+- Manage multiple instances of Coolify servers.
 - Real-time overview of every Coolify application with status, FQDN, and repository metadata.
 - One-click controls for start, stop, restart, deploy, and log streaming.
 - Deployment history with commit details, runtime status, and quick drill-down.

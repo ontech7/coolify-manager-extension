@@ -1,3 +1,5 @@
+import { getActiveInstance } from "../lib/config-storage.js";
+
 const icons = {
   rocket: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/>
@@ -77,6 +79,8 @@ const AUTO_REFRESH_INTERVAL = 10000; // 10 seconds
 let currentLogsApp = null;
 let currentTab = "apps";
 let serverUrl = "";
+let activeInstance = null;
+let activeInstanceName = "";
 let autoRefreshInterval = null;
 let autoRefreshEnabled = true;
 
@@ -101,21 +105,45 @@ function openCoolify() {
   chrome.tabs.create({ url: serverUrl });
 }
 
-async function isConfigured() {
-  const config = await chrome.storage.sync.get([
-    "serverUrl",
-    "apiToken",
-    "autoRefreshEnabled",
-  ]);
-
-  if (config.serverUrl) {
-    serverUrl = config.serverUrl.replace(/\/$/, "");
+function updateOpenCoolifyButton() {
+  if (!serverUrl) {
+    elements.openCoolifyBtn.disabled = true;
+    elements.openCoolifyBtn.textContent = "Open Coolify";
+    elements.openCoolifyBtn.title = "Open Coolify Dashboard";
+    return;
   }
 
-  autoRefreshEnabled =
-    config.autoRefreshEnabled === undefined ? true : config.autoRefreshEnabled;
+  let label = activeInstanceName;
 
-  return !!(config.serverUrl && config.apiToken);
+  if (!label) {
+    try {
+      label = new URL(serverUrl).host;
+    } catch (error) {
+      label = "Coolify";
+    }
+  }
+
+  elements.openCoolifyBtn.disabled = false;
+  elements.openCoolifyBtn.textContent = `Open ${label}`;
+  elements.openCoolifyBtn.title = serverUrl;
+}
+
+async function isConfigured() {
+  const [instance, storedSettings] = await Promise.all([
+    getActiveInstance(),
+    chrome.storage.sync.get(["autoRefreshEnabled"]),
+  ]);
+
+  activeInstance = instance;
+  serverUrl = instance ? instance.serverUrl.replace(/\/$/, "") : "";
+  activeInstanceName = instance ? instance.name : "";
+
+  autoRefreshEnabled =
+    storedSettings.autoRefreshEnabled === undefined
+      ? true
+      : !!storedSettings.autoRefreshEnabled;
+
+  return Boolean(instance);
 }
 
 function openAppSite(fqdn) {
@@ -752,7 +780,7 @@ async function init() {
 
   if (await isConfigured()) {
     elements.tabsContainer.classList.remove("hidden");
-    elements.openCoolifyBtn.disabled = !serverUrl;
+    updateOpenCoolifyButton();
 
     if (autoRefreshEnabled) {
       elements.autoRefreshBtn.classList.add("active");
@@ -760,11 +788,18 @@ async function init() {
         refreshCurrentTab,
         AUTO_REFRESH_INTERVAL,
       );
+    } else {
+      elements.autoRefreshBtn.classList.remove("active");
     }
 
     loadApplications();
   } else {
-    elements.openCoolifyBtn.disabled = true;
+    updateOpenCoolifyButton();
+    elements.autoRefreshBtn.classList.remove("active");
+    if (autoRefreshInterval) {
+      clearInterval(autoRefreshInterval);
+      autoRefreshInterval = null;
+    }
     showState("notConfigured");
   }
 }
