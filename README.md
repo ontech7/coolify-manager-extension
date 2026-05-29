@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Chrome-Extension-DD5144?logo=googlechrome&logoColor=white" alt="Chrome Extension">
- <img src="https://img.shields.io/badge/v-1.3.0-blue" alt="App Version">
+ <img src="https://img.shields.io/badge/v-1.4.0-blue" alt="App Version">
   <img src="https://img.shields.io/badge/License-MIT-61dafb" alt="License">
 </p>
 
