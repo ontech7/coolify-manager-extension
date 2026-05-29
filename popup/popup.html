@@ -43,7 +43,7 @@
 
       <!-- Tabs Navigation -->
       <div id="tabs-container" class="tabs-container hidden">
-        <button class="tab-btn active" data-tab="apps">
+        <button class="tab-btn active" data-tab="resources">
           <svg
             class="icon"
             width="14"
@@ -61,7 +61,7 @@
             <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
             <line x1="12" y1="22.08" x2="12" y2="12" />
           </svg>
-          Apps
+          Resources
         </button>
         <button class="tab-btn" data-tab="deployments">
           <svg
@@ -85,6 +85,25 @@
             <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
           </svg>
           Deployments
+        </button>
+        <button class="tab-btn" data-tab="servers">
+          <svg
+            class="icon"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+            <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+            <line x1="6" y1="6" x2="6.01" y2="6" />
+            <line x1="6" y1="18" x2="6.01" y2="18" />
+          </svg>
+          Servers
         </button>
       </div>
 
@@ -140,7 +159,7 @@
         </div>
       </div>
 
-      <div id="empty-list" class="state hidden">
+      <div id="empty-resources" class="state hidden">
         <div class="empty-state">
           <div class="empty-icon">
             <svg
@@ -160,12 +179,18 @@
               <line x1="12" y1="22.08" x2="12" y2="12" />
             </svg>
           </div>
-          <p>No applications found</p>
+          <p>No applications, databases or services found</p>
         </div>
       </div>
 
-      <div id="app-list" class="state hidden">
-        <div id="applications" class="applications"></div>
+      <div id="resources-list" class="state hidden">
+        <div id="resource-filters" class="filters">
+          <button class="filter-chip active" data-filter="all">All</button>
+          <button class="filter-chip" data-filter="application">Apps</button>
+          <button class="filter-chip" data-filter="database">DBs</button>
+          <button class="filter-chip" data-filter="service">Services</button>
+        </div>
+        <div id="resources" class="resources"></div>
       </div>
 
       <div id="empty-deployments" class="state hidden">
@@ -197,6 +222,33 @@
 
       <div id="deployments-list" class="state hidden">
         <div id="deployments" class="deployments"></div>
+      </div>
+
+      <div id="empty-servers" class="state hidden">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+              <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+              <line x1="6" y1="6" x2="6.01" y2="6" />
+              <line x1="6" y1="18" x2="6.01" y2="18" />
+            </svg>
+          </div>
+          <p>No servers found</p>
+        </div>
+      </div>
+
+      <div id="servers-list" class="state hidden">
+        <div id="servers" class="servers"></div>
       </div>
 
       <footer>
