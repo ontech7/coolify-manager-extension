@@ -561,3 +561,59 @@ footer {
 .author-link:hover {
   color: var(--color-primary);
 }
+
+.disclaimer-section {
+  margin-top: var(--spacing-3xl);
+}
+
+.disclaimer-section details {
+  background: var(--color-surface-default);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.disclaimer-section summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  list-style: none;
+}
+
+.disclaimer-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclaimer-section summary::after {
+  content: "+";
+  float: right;
+  color: var(--color-text-muted);
+}
+
+.disclaimer-section details[open] summary::after {
+  content: "−";
+}
+
+.disclaimer-body {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.disclaimer-body p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.disclaimer-body strong {
+  color: var(--color-text-secondary);
+}
+
+.disclaimer-heart {
+  text-align: center;
+  color: var(--color-text-secondary) !important;
+  margin-top: var(--spacing-sm);
+}
