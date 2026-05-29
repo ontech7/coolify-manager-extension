@@ -61,6 +61,42 @@ async function handleMessage(request) {
     case "cancelDeployment":
       return await cancelDeployment(data.uuid, data.appName);
 
+    case "getDatabases":
+      return await getDatabases();
+
+    case "startDatabase":
+      return await runResourceAction("startDatabase", data.uuid);
+
+    case "stopDatabase":
+      return await runResourceAction("stopDatabase", data.uuid);
+
+    case "restartDatabase":
+      return await runResourceAction("restartDatabase", data.uuid);
+
+    case "getServices":
+      return await getServices();
+
+    case "startService":
+      return await runResourceAction("startService", data.uuid);
+
+    case "stopService":
+      return await runResourceAction("stopService", data.uuid);
+
+    case "restartService":
+      return await runResourceAction("restartService", data.uuid);
+
+    case "getServers":
+      return await getServers();
+
+    case "getServer":
+      return await getServer(data.uuid);
+
+    case "getServerResources":
+      return await getServerResources(data.uuid);
+
+    case "validateServer":
+      return await runResourceAction("validateServer", data.uuid);
+
     default:
       throw new Error(`Unknown action: ${action}`);
   }
@@ -134,6 +170,43 @@ async function getDeployment(uuid) {
 async function cancelDeployment(uuid, appName) {
   const api = await createApiInstance();
   const result = await api.cancelDeployment(uuid);
+  return { success: true, data: result };
+}
+
+async function getDatabases() {
+  const api = await createApiInstance();
+  const databases = await api.getDatabases();
+  return { success: true, data: databases };
+}
+
+async function getServices() {
+  const api = await createApiInstance();
+  const services = await api.getServices();
+  return { success: true, data: services };
+}
+
+async function getServers() {
+  const api = await createApiInstance();
+  const servers = await api.getServers();
+  return { success: true, data: servers };
+}
+
+async function getServer(uuid) {
+  const api = await createApiInstance();
+  const server = await api.getServer(uuid);
+  return { success: true, data: server };
+}
+
+async function getServerResources(uuid) {
+  const api = await createApiInstance();
+  const resources = await api.getServerResources(uuid);
+  return { success: true, data: resources };
+}
+
+// Generic dispatcher for start/stop/restart/validate across resource types.
+async function runResourceAction(method, uuid) {
+  const api = await createApiInstance();
+  const result = await api[method](uuid);
   return { success: true, data: result };
 }
 
