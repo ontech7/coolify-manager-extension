@@ -114,7 +114,7 @@ export function createLogsScreen(ctx, route, opts = {}) {
       showLogs(result.logs || NO_LOGS);
     } catch (err) {
       if (request !== lastRequest) return;
-      if (!hasLogs && isNotFound(err) && err.message !== "Sub-service not found.") {
+      if (!hasLogs && isNotFound(err)) {
         ctx.notFound(route);
         return;
       }

@@ -2,8 +2,16 @@ import { HttpError } from "../../lib/coolify-api.js";
 import { onPendingChanged, readPending } from "../../lib/pending.js";
 import { html, setHtml } from "../dom.js";
 
+const RESOURCE_GONE = /^(application|database|service|server|deployment) not found\.?$/i;
+
+/**
+ * The resource itself is gone. Any other 404 ("Sub-service not found.", a route
+ * the server doesn't have) says nothing about it, so it is an ordinary error.
+ */
 export const isNotFound = (error) =>
-  error instanceof HttpError && error.status === 404;
+  error instanceof HttpError &&
+  error.status === 404 &&
+  RESOURCE_GONE.test(error.message);
 
 /** A screen that is one scrolling body. */
 export function createScrollScreen() {

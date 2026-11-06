@@ -126,8 +126,13 @@ export function createResourcesStore(ctx) {
       if (!started) return;
 
       notify();
-      poller.start();
-      await refresh();
+      // Polling starts after the first answer: a slow server shouldn't be asked
+      // again while the skeleton is waiting for it.
+      try {
+        await refresh();
+      } finally {
+        if (started) poller.start();
+      }
     },
 
     stop() {

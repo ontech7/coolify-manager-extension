@@ -50,7 +50,8 @@ let needsSelection = true;
 const gone = new Set();
 
 let autoRefresh = true;
-let busy = null;
+// The action running on each resource: it goes on when another row is selected.
+const busy = new Map();
 let isRefreshing = false;
 const counts = {};
 
@@ -162,7 +163,10 @@ function resourceHead() {
   const resource = findResource(uuid);
   const name = resource?.name ?? selectedName ?? uuid;
   const target = resource ?? { uuid, name, resourceType };
-  const actions = resourceActionState(target, { legacy: ctx.legacy, busy });
+  const actions = resourceActionState(target, {
+    legacy: ctx.legacy,
+    busy: busy.get(uuid) ?? null,
+  });
   const isStop = actions.startStop.kind === "stop";
 
   return html`<h2>${name}</h2>${resource && resourceBadge(resource)}
@@ -385,7 +389,6 @@ function setSelection(selection, { name = null, type = null, sub = "overview" } 
   view = { ...view, selection, sub, container: null, appUuid: null };
   selectedName = name;
   resourceType = type;
-  busy = null;
   shownList?.setSelected?.(selectedRow());
   renderPane();
   syncHash();
@@ -424,7 +427,6 @@ function applyRoute(route) {
   } else {
     needsSelection = true;
   }
-  busy = null;
 
   renderRail();
   showList();
@@ -433,16 +435,19 @@ function applyRoute(route) {
   syncHash();
 }
 
-function setBusy(action) {
-  busy = action;
-  renderHead();
+function setBusyFor(uuid) {
+  return (action) => {
+    if (action) busy.set(uuid, action);
+    else busy.delete(uuid);
+    renderHead();
+  };
 }
 
 function performOnSelected(action) {
   const resource = findResource(view.selection?.uuid);
   if (!resource) return;
   performResourceAction(ctx, action, resource, {
-    setBusy,
+    setBusy: setBusyFor(resource.uuid),
     afterAction: () => store.refresh(),
   });
 }

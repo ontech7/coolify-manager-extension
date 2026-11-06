@@ -1,4 +1,3 @@
-import { HttpError } from "../../lib/coolify-api.js";
 import {
   LIVE_DEPLOYMENT_REFRESH_INTERVAL,
   LOG_LINES,
@@ -15,6 +14,7 @@ import {
 } from "../components.js";
 import { createLogFollower, delegate, html, setHtml } from "../dom.js";
 import { icon } from "../icons.js";
+import { isNotFound } from "./shared.js";
 
 /** The dialog of the app, then the action. Failures show in a dialog. */
 export async function confirmCancelDeployment(ctx, uuid, { setBusy, afterAction }) {
@@ -168,7 +168,7 @@ export function createDeploymentScreen(ctx, route, opts = {}) {
       if (!wasShown) follower.toLatest();
     } catch (err) {
       if (request !== lastRequest) return;
-      if (!deployment && err instanceof HttpError && err.status === 404) {
+      if (!deployment && isNotFound(err)) {
         ctx.notFound(route);
         return;
       }

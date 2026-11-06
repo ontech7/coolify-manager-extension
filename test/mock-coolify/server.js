@@ -7,7 +7,7 @@
  *   node test/mock-coolify/server.js --version 4.3.1 --port 4103
  *
  * Control endpoints, without auth:
- *   POST /__control {mode?, failPaths?, delayMs?, stateChangeDelayMs?, seed?}
+ *   POST /__control {mode?, failPaths?, failStatus?, failMessage?, delayMs?, stateChangeDelayMs?, seed?}
  *     mode: "ok" | "html" (login page) | "hang" (never answers)
  *           | "stall" (headers, then nothing)
  *     seed: {applications?, databases?, services?, deployments?, removeResources?}
@@ -511,6 +511,8 @@ export async function startMockCoolify({
   const initialControl = {
     mode: "ok",
     failPaths: [],
+    failStatus: 500,
+    failMessage: "Server Error",
     delayMs: 0,
     stateChangeDelayMs: STATE_CHANGE_DELAY,
   };
@@ -578,7 +580,7 @@ export async function startMockCoolify({
 
     const path = url.pathname.slice(prefix.length);
     if (control.failPaths.some((failed) => path.startsWith(failed))) {
-      return sendJson(response, 500, { message: "Server Error" });
+      return sendJson(response, control.failStatus, { message: control.failMessage });
     }
 
     try {
