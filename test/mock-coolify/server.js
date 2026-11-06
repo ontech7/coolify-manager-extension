@@ -57,7 +57,8 @@ function createLogStore() {
 }
 
 function publicDeployment(deployment, { withLogs = true } = {}) {
-  const { lines, script, ...fields } = deployment;
+  // The real API doesn't say which application a deployment belongs to.
+  const { lines, script, application_uuid: _application, ...fields } = deployment;
   return {
     ...fields,
     logs: withLogs

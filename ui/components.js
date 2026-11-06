@@ -114,8 +114,8 @@ export function skeletonList(count = 5) {
   return html`<div class="list">${Array.from({ length: count }, () => html`<div class="sk"></div>`)}</div>`;
 }
 
-export function loadingState() {
-  return html`<div class="empty"><span class="ib spin" style="background:none">${icon("loader", 22)}</span><p>Loading...</p></div>`;
+export function loadingState(message = "Loading...") {
+  return html`<div class="empty"><span class="ib spin" style="background:none">${icon("loader", 22)}</span><p>${message}</p></div>`;
 }
 
 export function healthPills(server) {

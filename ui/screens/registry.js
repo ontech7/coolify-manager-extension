@@ -1,5 +1,12 @@
 import { errorState } from "../components.js";
 import { setHtml } from "../dom.js";
+import {
+  createApplicationScreen,
+  createHistoryScreen,
+  createRollbackScreen,
+} from "./application.js";
+import { createDeploymentScreen } from "./deployment.js";
+import { createDeploymentsScreen } from "./deployments.js";
 import { createResourcesScreen } from "./resources.js";
 
 function createPendingScreen(route) {
@@ -19,6 +26,16 @@ export function createScreen(ctx, route, opts) {
   switch (route.screen) {
     case "resources":
       return createResourcesScreen(ctx, route, opts);
+    case "application":
+      return createApplicationScreen(ctx, route, opts);
+    case "history":
+      return createHistoryScreen(ctx, route, opts);
+    case "rollback":
+      return createRollbackScreen(ctx, route, opts);
+    case "deployment":
+      return createDeploymentScreen(ctx, route, opts);
+    case "deployments":
+      return createDeploymentsScreen(ctx, route, opts);
     default:
       return createPendingScreen(route);
   }

@@ -1,3 +1,4 @@
+import { SCROLL_FOLLOW_THRESHOLD } from "../lib/constants.js";
 import { escapeHtml } from "../lib/format.js";
 
 /** Markup that is safe to put in the page: built by `html` or marked by `raw`. */
@@ -105,4 +106,36 @@ export function delegate(root, handlers) {
   };
   root.addEventListener("click", listener);
   return () => root.removeEventListener("click", listener);
+}
+
+/**
+ * Keeps a scrolling element pinned to its end as content grows (live logs), but
+ * only while the user is at the bottom: scrolling up to read pauses following,
+ * scrolling back down resumes it.
+ */
+export function createLogFollower(element, { threshold = SCROLL_FOLLOW_THRESHOLD } = {}) {
+  let following = true;
+
+  const toEnd = () => {
+    element.scrollTop = element.scrollHeight;
+  };
+
+  element.addEventListener(
+    "scroll",
+    () => {
+      following =
+        element.scrollHeight - element.scrollTop - element.clientHeight < threshold;
+    },
+    { passive: true },
+  );
+
+  return {
+    onContentChanged() {
+      if (following) toEnd();
+    },
+    toLatest() {
+      following = true;
+      toEnd();
+    },
+  };
 }

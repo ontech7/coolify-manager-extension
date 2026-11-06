@@ -65,6 +65,7 @@ function rootScreen(key) {
       key,
       mount(
         createScreen(ctx, { screen: key, filter, query }, {
+          onHeaderChange: renderHeader,
           onViewChange(view) {
             filter = view.filter;
             query = view.query;
@@ -80,7 +81,9 @@ function rootScreen(key) {
 function currentScreen() {
   const top = stack.at(-1);
   if (!top) return rootScreen(tab);
-  top.screen ??= mount(createScreen(ctx, top.route, { onHeaderChange: renderHeader }));
+  top.screen ??= mount(
+    createScreen(ctx, top.route, { onHeaderChange: renderHeader }),
+  );
   return top.screen;
 }
 
@@ -167,20 +170,25 @@ function show(motion) {
   saveNav();
 }
 
-function push(route) {
+function removeTop() {
+  const top = stack.pop();
+  if (!top?.screen) return;
+  if (shown === top.screen) shown = null;
+  top.screen.deactivate?.();
+  top.screen.destroy();
+  top.screen.el.remove();
+}
+
+/** `replace` takes the place of the screen on top, as when a rollback starts. */
+function push(route, { replace = false } = {}) {
+  if (replace) removeTop();
   stack.push({ route, screen: null });
   show("push");
 }
 
 function pop() {
-  const top = stack.pop();
-  if (!top) return;
-  if (top.screen) {
-    if (shown === top.screen) shown = null;
-    top.screen.deactivate?.();
-    top.screen.destroy();
-    top.screen.el.remove();
-  }
+  if (stack.length === 0) return;
+  removeTop();
   show("pop");
 }
 
@@ -194,6 +202,13 @@ function handleNotFound(route) {
   while (stack.length > index) pop();
   ctx.dialogs.toast("This resource no longer exists.");
 }
+
+// Buttons a screen adds to the header belong to that screen.
+slot("head").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  if (!button || button.disabled) return;
+  shown?.headerHandlers?.[button.dataset.action]?.(button.dataset, button, event);
+});
 
 delegate(root, {
   back: pop,
@@ -242,6 +257,7 @@ async function start() {
     kind: "popup",
     root,
     open: push,
+    back: pop,
     notFound: handleNotFound,
   });
 

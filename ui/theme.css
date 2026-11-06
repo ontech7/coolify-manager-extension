@@ -1256,3 +1256,25 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+.screen > .dep {
+  flex: 1;
+}
+
+.load-more {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.rollback-hint {
+  margin-bottom: 8px;
+}
+
+.image-tag {
+  color: var(--primary-light);
+}
+
+.image-action {
+  display: inline-flex;
+  color: var(--primary-light);
+}

@@ -40,7 +40,7 @@ async function showStoredErrors(ctx) {
  * What every screen needs, for one page. `open` and `notFound` come from the
  * shell, which decides where a screen goes: on a stack or in a column.
  */
-export async function createSurface({ kind, root, open, notFound }) {
+export async function createSurface({ kind, root, open, back, notFound }) {
   const dialogs = createDialogs(root);
   const instance = await getActiveInstance();
 
@@ -52,6 +52,7 @@ export async function createSurface({ kind, root, open, notFound }) {
     actions: null,
     dialogs,
     open,
+    back,
     notFound,
 
     /** Only http and https: these values come from the API. */
