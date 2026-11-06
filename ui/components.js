@@ -83,7 +83,7 @@ export function detailTable(rows) {
 export function filterChips(items, active, action) {
   return html`<div class="chips">${items.map(
     ({ value, label }) =>
-      html`<button class="chip${value === active ? " on" : ""}" data-action="${action}" data-value="${value}" aria-pressed="${value === active}">${label}</button>`,
+      html`<button class="chip${value === active ? " on" : ""}" data-action="${action}" data-value="${value}" aria-pressed="${String(value === active)}">${label}</button>`,
   )}</div>`;
 }
 

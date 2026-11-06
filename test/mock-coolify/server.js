@@ -7,7 +7,7 @@
  *   node test/mock-coolify/server.js --version 4.3.1 --port 4103
  *
  * Control endpoints, without auth:
- *   POST /__control {mode?, failPaths?, delayMs?, seed?}
+ *   POST /__control {mode?, failPaths?, delayMs?, stateChangeDelayMs?, seed?}
  *     mode: "ok" | "html" (login page) | "hang" (never answers)
  *           | "stall" (headers, then nothing)
  *     seed: {applications?, databases?, services?, deployments?, removeResources?}
@@ -66,7 +66,7 @@ function publicDeployment(deployment, { withLogs = true } = {}) {
   };
 }
 
-function createApi(version) {
+function createApi(version, stateChangeDelay) {
   let state = createFixtures();
   const logsFor = createLogStore();
   let nextId = 1;
@@ -96,7 +96,7 @@ function createApi(version) {
   const server = (uuid) => find(state.servers, uuid, "Server");
 
   const later = (change) => {
-    const timer = setTimeout(change, STATE_CHANGE_DELAY);
+    const timer = setTimeout(change, stateChangeDelay());
     timer.unref?.();
   };
 
@@ -507,9 +507,14 @@ export async function startMockCoolify({
   port = 0,
   basePath = "",
 } = {}) {
-  const api = createApi(version);
-  const initialControl = { mode: "ok", failPaths: [], delayMs: 0 };
+  const initialControl = {
+    mode: "ok",
+    failPaths: [],
+    delayMs: 0,
+    stateChangeDelayMs: STATE_CHANGE_DELAY,
+  };
   let control = { ...initialControl };
+  const api = createApi(version, () => control.stateChangeDelayMs);
   let requests = [];
 
   const prefix = `${basePath}/api/v1`;

@@ -1238,3 +1238,21 @@ pre.logs {
     transition: none!important;
   }
 }
+
+/* Screens */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+.x-content,
+.screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

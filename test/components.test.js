@@ -164,6 +164,8 @@ test("filterChips marks the active one", () => {
   );
   assert.match(chips, /class="chip" data-action="filter" data-value="all"/);
   assert.match(chips, /class="chip on" data-action="filter" data-value="database"/);
+  assert.match(chips, /data-value="all" aria-pressed="false"/);
+  assert.match(chips, /data-value="database" aria-pressed="true"/);
 });
 
 test("refreshErrorBanner has the app's text", () => {
