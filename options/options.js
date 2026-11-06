@@ -1,10 +1,15 @@
 import {
   addInstance,
   getConfig,
+  onConfigChanged,
   removeInstance,
   switchActiveInstance,
   updateInstance,
 } from "../lib/config-storage.js";
+import { POST_ACTIONS_MIN_VERSION } from "../lib/constants.js";
+import { CoolifyAPI } from "../lib/coolify-api.js";
+import { escapeHtml } from "../lib/format.js";
+import { isVersionAtLeast } from "../lib/version.js";
 
 const form = document.getElementById("config-form");
 const formTitle = document.getElementById("form-title");
@@ -19,23 +24,33 @@ const instancesList = document.getElementById("instances-list");
 const statusMessage = document.getElementById("status-message");
 const versionEl = document.getElementById("version");
 const saveBtn = form.querySelector('button[type="submit"]');
+const apiModeSelector = document.getElementById("api-mode");
+const apiModeHint = document.getElementById("api-mode-hint");
 
 const iconEye = toggleTokenBtn.querySelector(".icon-eye");
 const iconEyeOff = toggleTokenBtn.querySelector(".icon-eye-off");
+
+const API_MODE_HINT = `Auto-detected on test. < ${POST_ACTIONS_MIN_VERSION} uses GET, >= ${POST_ACTIONS_MIN_VERSION} uses POST.`;
+const API_MODE_UNDETECTED_HINT =
+  "Could not detect the version automatically — select it manually.";
 
 let config = { instances: [], activeInstanceId: null };
 let formMode = "idle"; // "idle" | "add" | "edit"
 let editingInstanceId = null;
 let isSaving = false;
 let isTesting = false;
+let testRun = 0;
+// null: nothing picked or detected yet. Saved like that, the mode is detected
+// from the server on the first connection.
+let apiMode = null;
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function setApiMode(mode) {
+  apiMode = mode;
+  for (const option of apiModeSelector.querySelectorAll(".mode-option")) {
+    const isActive = option.dataset.mode === mode;
+    option.classList.toggle("active", isActive);
+    option.setAttribute("aria-pressed", String(isActive));
+  }
 }
 
 function showStatus(message, type = "info") {
@@ -107,9 +122,12 @@ function renderInstances() {
 
 function setFormMode(newMode, instance) {
   formMode = newMode;
+  testRun++;
   hideStatus();
   form.reset();
   resetTokenVisibility();
+  apiModeHint.textContent = API_MODE_HINT;
+  setApiMode(formMode === "edit" ? (instance?.apiMode ?? null) : null);
 
   if (formMode === "edit" && instance) {
     editingInstanceId = instance.id;
@@ -171,6 +189,10 @@ function validateServerUrl(url) {
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       return "Server URL must start with http:// or https://";
     }
+    // Browsers refuse them, and they would end up on screen.
+    if (parsed.username || parsed.password) {
+      return "Enter the server URL without a username or password";
+    }
   } catch (error) {
     return "Please enter a valid URL (e.g.: https://coolify.example.com)";
   }
@@ -230,13 +252,14 @@ async function handleSubmit(event) {
         name,
         serverUrl,
         apiToken,
+        apiMode,
       });
 
       await refreshConfig();
       setFormMode("idle");
       showStatus("Instance updated successfully!", "success");
     } else {
-      await addInstance({ name, serverUrl, apiToken });
+      await addInstance({ name, serverUrl, apiToken, apiMode });
 
       await refreshConfig();
       setFormMode("idle");
@@ -341,6 +364,8 @@ async function testConnection() {
     return;
   }
 
+  // A result only counts for the form it was asked for: see clearTestResult.
+  const run = ++testRun;
   isTesting = true;
   testConnectionBtn.disabled = true;
   testConnectionBtn.innerHTML = `
@@ -352,18 +377,33 @@ async function testConnection() {
   showStatus("Verifying connection...", "info");
 
   try {
-    const response = await chrome.runtime.sendMessage({
-      action: "testConnection",
-      data: { serverUrl, apiToken },
-    });
+    const api = new CoolifyAPI(serverUrl, apiToken);
+    const result = await api.testConnection();
+    if (run !== testRun) return;
 
-    if (response.success) {
-      showStatus("Connection successful!", "success");
+    if (result.success) {
+      const version = await api.getVersion();
+      if (run !== testRun) return;
+
+      const atLeast = version
+        ? isVersionAtLeast(version, POST_ACTIONS_MIN_VERSION)
+        : null;
+
+      if (atLeast !== null) {
+        setApiMode(atLeast ? "current" : "legacy");
+      }
+      apiModeHint.textContent = version
+        ? API_MODE_HINT
+        : API_MODE_UNDETECTED_HINT;
+      showStatus(
+        `✓ Connection successful!${version ? ` (Coolify v${version})` : ""}`,
+        "success",
+      );
     } else {
-      showStatus(`Error: ${response.error}`, "error");
+      showStatus(`✗ ${result.error || "Connection failed"}`, "error");
     }
   } catch (error) {
-    showStatus(`Error: ${error.message}`, "error");
+    if (run === testRun) showStatus(`✗ ${error.message}`, "error");
   } finally {
     isTesting = false;
     testConnectionBtn.disabled = false;
@@ -374,6 +414,19 @@ async function testConnection() {
       </svg>
       Test Connection
     `;
+  }
+}
+
+function clearTestResult() {
+  testRun++;
+  hideStatus();
+  apiModeHint.textContent = API_MODE_HINT;
+}
+
+function handleApiModeClick(event) {
+  const option = event.target.closest(".mode-option");
+  if (option) {
+    setApiMode(option.dataset.mode);
   }
 }
 
@@ -405,5 +458,14 @@ toggleTokenBtn.addEventListener("click", toggleTokenVisibility);
 addInstanceBtn.addEventListener("click", handleAddInstance);
 closeFormBtn.addEventListener("click", handleCloseForm);
 instancesList.addEventListener("click", handleInstancesListClick);
+apiModeSelector.addEventListener("click", handleApiModeClick);
+instanceNameInput.addEventListener("input", clearTestResult);
+apiTokenInput.addEventListener("input", clearTestResult);
+serverUrlInput.addEventListener("input", () => {
+  clearTestResult();
+  // Another URL may be another server: don't keep the old server's version.
+  setApiMode(null);
+});
+onConfigChanged(refreshConfig);
 
 init();

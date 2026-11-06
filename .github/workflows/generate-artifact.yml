@@ -22,9 +22,12 @@ jobs:
           rsync -av --progress . extension-build/ \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='.gitignore' \
             --exclude='*.md' \
             --exclude='assets/screenshot*.png' \
             --exclude='assets/small-promo-title.png' \
+            --exclude='test' \
+            --exclude='docs' \
             --exclude='extension-build'
 
           # Create the zip file

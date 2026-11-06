@@ -1,0 +1,63 @@
+html,
+body {
+  overflow: hidden;
+}
+
+.dash {
+  height: 100vh;
+}
+
+.d-list-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.d-list .screen {
+  min-height: 0;
+}
+
+.d-rows-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-row .c-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-content .x-scroll {
+  padding: 14px 16px;
+}
+
+.d-pane-head .btn {
+  flex: none;
+  padding: 6px 10px;
+}
+
+.d-toggle.active {
+  color: var(--primary-light);
+}
+
+.d-page-state {
+  grid-column: 1 / -1;
+}
+
+.d-pane-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}

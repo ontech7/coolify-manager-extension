@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Chrome-Extension-DD5144?logo=googlechrome&logoColor=white" alt="Chrome Extension">
- <img src="https://img.shields.io/badge/v-1.4.0-blue" alt="App Version">
+ <img src="https://img.shields.io/badge/v-1.5.0-blue" alt="App Version">
   <img src="https://img.shields.io/badge/License-MIT-61dafb" alt="License">
 </p>
 
@@ -21,10 +21,16 @@
 ## Highlights
 
 - Manage multiple instances of Coolify servers.
-- Real-time overview of every Coolify application with status, FQDN, and repository metadata.
-- One-click controls for start, stop, restart, deploy, and log streaming.
-- Deployment history with commit details, runtime status, and quick drill-down.
-- Secure storage for server URL and API token via Chrome's sync storage.
+- A full popup, and an expanded three-column dashboard in a tab, on the same screen with one click.
+- Applications, databases and services in one list, with status summary, filters and search.
+- One-click controls for start, stop, restart and deploy, with Force Rebuild and pull latest images. Actions finish even if the popup closes.
+- Live deployment view with the build log, cancel, and a rollback to a previous image.
+- Database details with masked connection URLs, and scheduled backups with "Back up now".
+- Service details with per-container start, stop, restart and logs.
+- Live logs for applications, databases and service containers.
+- Servers with health status and running resources, plus restart proxy and Docker cleanup.
+- Works with every Coolify version the app supports: the API version is detected per instance, and features a server lacks are hidden or explained.
+- Server URLs and API tokens are kept in `chrome.storage.sync`, so they follow your Chrome account to every browser signed in with sync on. Use a token you are comfortable having there.
 
 ## Quick Start
 
@@ -45,8 +51,8 @@ You can download it from [here](https://chromewebstore.google.com/detail/coolify
 ## Configure Your Server
 
 1. Enable API Access in Coolify (Settings → Advanced → API Access).
-2. Create an API token with `read`, `write`, and `deploy` permissions.
-3. In the extension, open Settings, enter the server URL (https://coolify.example.com), paste the token, test the connection, and save.
+2. Create an API token with `read`, `read:sensitive`, `write`, and `deploy` permissions. `read:sensitive` gives access to logs and to database connection URLs, which contain passwords. Without it those aren't available, and the rest of the extension works the same.
+3. In the extension, open Settings, enter the server URL (https://coolify.example.com), paste the token, test the connection, and save. Testing also detects the Coolify version.
 
 ## License & Credits
 
