@@ -959,7 +959,7 @@ pre.logs {
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: 168px 310px minmax(0,1fr);
+  grid-template-columns: 208px 310px minmax(0,1fr);
   background: linear-gradient(135deg,var(--bg-primary),var(--bg-secondary));
   color: var(--text-secondary);
   font-size: 13px;
