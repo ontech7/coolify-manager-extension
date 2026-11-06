@@ -9,9 +9,7 @@ function createEvent() {
     addListener: (listener) => listeners.add(listener),
     removeListener: (listener) => listeners.delete(listener),
     hasListener: (listener) => listeners.has(listener),
-    fire: (...args) => {
-      for (const listener of [...listeners]) listener(...args);
-    },
+    fire: (...args) => [...listeners].map((listener) => listener(...args)),
     clear: () => listeners.clear(),
   };
 }
@@ -74,8 +72,25 @@ function createStorageArea(name, globalOnChanged) {
   };
 }
 
+/** Web Locks, which browsers have and Node 22 doesn't: one task at a time per name. */
+function installLocksStub() {
+  const queues = new Map();
+  Object.defineProperty(globalThis.navigator, "locks", {
+    configurable: true,
+    value: {
+      request(name, task) {
+        const run = (queues.get(name) ?? Promise.resolve()).then(() => task());
+        queues.set(name, run.catch(() => {}));
+        return run;
+      },
+    },
+  });
+}
+
 /** Installs `globalThis.chrome`. `reset()` empties it between tests. */
 export function installChromeStub() {
+  installLocksStub();
+
   const storageChanged = createEvent();
   const areas = {
     sync: createStorageArea("sync", storageChanged),
@@ -104,18 +119,12 @@ export function installChromeStub() {
       getURL: (path) => `chrome-extension://stub-extension-id/${path}`,
       getManifest: () => ({ version: "0.0.0" }),
       getContexts: async () => stub.contexts,
-      /** Answers like Chrome: the first listener that responds wins. */
+      /** Like Chrome: a listener returns true to answer later. */
       sendMessage: (message) =>
         new Promise((resolve) => {
-          let answered = false;
-          const respond = (value) => {
-            if (!answered) {
-              answered = true;
-              resolve(value);
-            }
-          };
-          onMessage.fire(message, {}, respond);
-          setTimeout(() => respond(undefined), 0);
+          if (!onMessage.fire(message, {}, resolve).includes(true)) {
+            resolve(undefined);
+          }
         }),
     },
     tabs: {

@@ -1,3 +1,4 @@
+import { handleRunAction } from "../lib/action-runner.js";
 import { getActiveInstance } from "../lib/config-storage.js";
 import { CoolifyAPI } from "../lib/coolify-api.js";
 
@@ -14,6 +15,11 @@ async function createApiInstance() {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "run-action") {
+    handleRunAction(request).then(sendResponse);
+    return true;
+  }
+
   handleMessage(request)
     .then(sendResponse)
     .catch((error) => sendResponse({ success: false, error: error.message }));
