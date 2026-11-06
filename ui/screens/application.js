@@ -1,5 +1,5 @@
 import { HISTORY_PAGE_SIZE } from "../../lib/constants.js";
-import { HttpError, UnsupportedVersionError } from "../../lib/coolify-api.js";
+import { UnsupportedVersionError } from "../../lib/coolify-api.js";
 import {
   formatDateTime,
   formatDockerDate,
@@ -8,7 +8,6 @@ import {
   splitFqdn,
   truncateCommit,
 } from "../../lib/format.js";
-import { onPendingChanged, readPending } from "../../lib/pending.js";
 import { getDeploymentStatus } from "../../lib/status.js";
 import {
   detailTable,
@@ -21,15 +20,7 @@ import {
 import { delegate, html, setHtml } from "../dom.js";
 import { icon } from "../icons.js";
 import { resourceBadge } from "./resources.js";
-
-const isNotFound = (error) => error instanceof HttpError && error.status === 404;
-
-function createEl() {
-  const el = document.createElement("div");
-  el.className = "screen";
-  setHtml(el, html`<div class="x-scroll" data-slot="body"></div>`);
-  return { el, body: el.querySelector('[data-slot="body"]') };
-}
+import { createScrollScreen, isNotFound, watchResourcePending } from "./shared.js";
 
 function applicationDetails(application) {
   const urls = splitFqdn(application.fqdn);
@@ -58,14 +49,14 @@ function applicationDetails(application) {
  */
 export function createApplicationScreen(ctx, route, { section, onHeaderChange } = {}) {
   const { uuid } = route;
-  const { el, body } = createEl();
+  const { el, body } = createScrollScreen();
 
   let application = null;
   let pending = null;
   let isLoading = true;
   let error = null;
   let lastRequest = 0;
-  let stopListening = null;
+  let stopWatching = null;
 
   function render() {
     if (isLoading) {
@@ -143,20 +134,19 @@ export function createApplicationScreen(ctx, route, { section, onHeaderChange } 
     el,
     title: () => application?.name ?? route.name ?? "Application",
     refresh: ({ manual = false } = {}) => load({ manual }),
-    async activate() {
-      stopListening = onPendingChanged(ctx.instance.id, (next) => {
-        pending = next[uuid] ?? null;
+    activate() {
+      stopWatching = watchResourcePending(ctx, uuid, (next) => {
+        pending = next;
         render();
       });
-      pending = (await readPending(ctx.instance.id))[uuid] ?? null;
-      await load();
+      return load();
     },
     deactivate() {
-      stopListening?.();
-      stopListening = null;
+      stopWatching?.();
+      stopWatching = null;
     },
     destroy() {
-      stopListening?.();
+      stopWatching?.();
     },
   };
 }
@@ -177,7 +167,7 @@ function historyRow(deployment, appUuid, name) {
 /** Past deployments of an application, a page at a time. */
 export function createHistoryScreen(ctx, route, opts = {}) {
   const { uuid } = route;
-  const { el, body } = createEl();
+  const { el, body } = createScrollScreen();
 
   let deployments = [];
   let hasMore = false;
@@ -291,7 +281,7 @@ function rollbackRow(image, rollingBack) {
 /** Redeploys an image Coolify still has for the application (Coolify >= 4.3.0). */
 export function createRollbackScreen(ctx, route) {
   const { uuid, name } = route;
-  const { el, body } = createEl();
+  const { el, body } = createScrollScreen();
 
   let images = [];
   let isLoading = true;

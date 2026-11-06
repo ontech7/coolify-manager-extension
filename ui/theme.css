@@ -1278,3 +1278,23 @@ body {
   display: inline-flex;
   color: var(--primary-light);
 }
+
+.detail-hint {
+  margin-top: 8px;
+}
+
+.backup-frequency {
+  color: var(--primary-light);
+}
+
+.backup-run {
+  margin: 6px 0 0;
+}
+
+.logs-banner:not(:empty) {
+  padding: 8px 12px 0;
+}
+
+.logs-chips {
+  padding-bottom: 10px;
+}

@@ -82,7 +82,10 @@ function currentScreen() {
   const top = stack.at(-1);
   if (!top) return rootScreen(tab);
   top.screen ??= mount(
-    createScreen(ctx, top.route, { onHeaderChange: renderHeader }),
+    createScreen(ctx, top.route, {
+      onHeaderChange: renderHeader,
+      onRouteChange: saveNav,
+    }),
   );
   return top.screen;
 }
