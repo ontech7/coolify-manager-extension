@@ -3,6 +3,7 @@
   "name": "Coolify Manager",
   "version": "1.4.0",
   "description": "Manage your Coolify projects directly from your browser",
+  "minimum_chrome_version": "116",
   "permissions": [
     "storage"
   ],

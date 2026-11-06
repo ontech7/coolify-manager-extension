@@ -39,39 +39,58 @@ function deploymentCard(deployment, isCancelling) {
   </article>`;
 }
 
+function deploymentRow(deployment, isSelected) {
+  return html`<button class="d-row${isSelected ? " on" : ""}" data-action="select" data-uuid="${deployment.deployment_uuid}"${isSelected ? html` aria-current="true"` : ""}>
+    <div class="d-row-top"><span class="c-name">${deployment.application_name ?? ""}</span>${statusBadge(getDeploymentStatus(deployment.status))}</div>
+    <div class="c-sub"><span>${formatRelativeTime(deployment.created_at)}</span>${
+      deployment.commit &&
+      html`<span class="commit">${truncateCommit(deployment.commit)}</span>`
+    }</div>
+  </button>`;
+}
+
 /** The Deployments tab: only what is active now, as Coolify's list has it. */
-export function createDeploymentsScreen(ctx) {
+export function createDeploymentsScreen(ctx, _route, opts = {}) {
   const store = createListStore(async () =>
     sortNewestFirst(await ctx.api.getDeployments()),
   );
   const cancelling = new Set();
   let hasEntered = false;
+  const isRows = opts.variant === "rows";
+  let selectedUuid = opts.selectedUuid ?? null;
 
   const el = document.createElement("div");
   el.className = "screen";
   setHtml(
     el,
-    html`<div class="x-fixed" data-slot="fixed"><div class="sum" data-slot="summary"></div><div data-slot="banner"></div></div>
-      <div class="x-scroll"><div data-slot="state"></div><div class="list" data-slot="list"></div></div>`,
+    isRows
+      ? html`<div class="d-list-head"><h2>Deployments</h2><div class="sum" data-slot="summary"></div><div data-slot="banner"></div></div>
+          <div class="d-rows"><div data-slot="state"></div><div class="d-rows-list" data-slot="list"></div></div>`
+      : html`<div class="x-fixed" data-slot="fixed"><div class="sum" data-slot="summary"></div><div data-slot="banner"></div></div>
+          <div class="x-scroll"><div data-slot="state"></div><div class="list" data-slot="list"></div></div>`,
   );
 
   const slot = (name) => el.querySelector(`[data-slot="${name}"]`);
   const list = slot("list");
 
   const renderCard = (deployment) =>
-    deploymentCard(deployment, cancelling.has(deployment.deployment_uuid));
+    isRows
+      ? deploymentRow(deployment, deployment.deployment_uuid === selectedUuid)
+      : deploymentCard(deployment, cancelling.has(deployment.deployment_uuid));
 
   function render() {
     const { items, isLoading, error } = store.get();
 
+    if (!isLoading) opts.onItems?.(items);
+
     if (isLoading || (error && items.length === 0)) {
-      slot("fixed").hidden = true;
+      if (slot("fixed")) slot("fixed").hidden = true;
       setHtml(slot("state"), isLoading ? skeletonList(3) : errorState(error));
       renderKeyed(list, [], () => "", () => "");
       return;
     }
 
-    slot("fixed").hidden = false;
+    if (slot("fixed")) slot("fixed").hidden = false;
     setHtml(
       slot("summary"),
       html`<span>${items.length > 0 ? html`<b>${items.length}</b> active` : "Active & in progress"}</span>`,
@@ -93,7 +112,7 @@ export function createDeploymentsScreen(ctx) {
 
     renderKeyed(list, items, (item) => item.deployment_uuid, renderCard);
 
-    if (!hasEntered && items.length > 0) {
+    if (!isRows && !hasEntered && items.length > 0) {
       hasEntered = true;
       [...list.children].forEach((card, index) => {
         card.style.setProperty("--i", index);
@@ -104,6 +123,10 @@ export function createDeploymentsScreen(ctx) {
   }
 
   delegate(el, {
+    select({ uuid }) {
+      const item = store.get().items.find((d) => d.deployment_uuid === uuid);
+      if (item) opts.onSelect?.(item);
+    },
     "open-deployment": ({ uuid, name }) =>
       ctx.open({ screen: "deployment", uuid, name }),
     async "cancel-deployment"({ uuid }) {
@@ -125,6 +148,10 @@ export function createDeploymentsScreen(ctx) {
   return {
     el,
     title: () => "Deployments",
+    setSelected(uuid) {
+      selectedUuid = uuid;
+      render();
+    },
     refresh: () => store.refresh(),
     activate: () => store.start(),
     deactivate: () => store.stop(),

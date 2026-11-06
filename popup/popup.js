@@ -5,6 +5,7 @@ import {
   setAutoRefreshEnabled,
 } from "../lib/config-storage.js";
 import { loadNavState, saveNavState } from "../lib/nav-state.js";
+import { openDashboard } from "../lib/open-dashboard.js";
 import { delegate, html, setHtml } from "../ui/dom.js";
 import { icon } from "../ui/icons.js";
 import { createScreen } from "../ui/screens/registry.js";
@@ -99,11 +100,18 @@ function renderHeader() {
     size: 15,
   });
 
+  const toDashboard = iconButton({
+    action: "open-dashboard",
+    icon: "expand",
+    label: "Open in dashboard",
+    size: 15,
+  });
+
   if (stack.length === 0) {
     setHtml(
       slot("head"),
       html`<img src="/assets/icon-48.png" alt="" width="22" height="22" /><h2 class="x-title">Coolify Manager</h2>
-        <div class="grp">${ctx?.instance && refresh}</div>`,
+        <div class="grp">${ctx?.instance && html`${refresh}${toDashboard}`}</div>`,
     );
     return;
   }
@@ -113,7 +121,7 @@ function renderHeader() {
     slot("head"),
     html`${iconButton({ action: "back", icon: "back", label: "Back", size: 16 })}
       <h2 class="x-title" title="${title}">${title}</h2>
-      <div class="grp">${shown?.headerActions?.()}${refresh}</div>`,
+      <div class="grp">${shown?.headerActions?.()}${refresh}${toDashboard}</div>`,
   );
 }
 
@@ -238,6 +246,13 @@ delegate(root, {
   },
   settings: openSettings,
   "go-to-settings": openSettings,
+  async "open-dashboard"() {
+    await openDashboard(
+      stack.at(-1)?.route ??
+        (tab === "resources" ? { screen: tab, filter, query } : { screen: tab }),
+    );
+    window.close();
+  },
 });
 
 function renderNotConfigured() {

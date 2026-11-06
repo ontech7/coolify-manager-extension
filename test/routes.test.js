@@ -16,6 +16,8 @@ const ROUTES = [
   { screen: "logs", uuid: "s", type: "service", name: "n8n", container: "c/1" },
   { screen: "deployment", uuid: "x", appUuid: "a" },
   { screen: "deployment", uuid: "x" },
+  { screen: "database", uuid: "d", sub: "backups" },
+  { screen: "service", uuid: "s", sub: "containers", filter: "service", query: "n8n" },
 ];
 
 test("every screen survives the round trip", () => {
@@ -105,4 +107,9 @@ test("dashboardViewFor follows the table of the spec", () => {
   const alone = dashboardViewFor({ screen: "deployment", uuid: "x" });
   assert.equal(alone.nav, "deployments");
   assert.equal(alone.appUuid, null);
+});
+
+test("a sub-tab of the dashboard wins over the screen's own", () => {
+  assert.equal(dashboardViewFor({ screen: "database", uuid: "d", sub: "backups" }).sub, "backups");
+  assert.equal(dashboardViewFor({ screen: "service", uuid: "s", sub: "containers" }).sub, "containers");
 });

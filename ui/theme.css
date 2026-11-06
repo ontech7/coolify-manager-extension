@@ -1149,7 +1149,7 @@ pre.logs {
 @media (max-width:900px) {
   .dash {
     grid-template-columns: minmax(0,1fr);
-    grid-template-rows: auto 230px minmax(0,1fr);
+    grid-template-rows: auto minmax(280px, 42%) minmax(0,1fr);
   }
 
   .d-rail {

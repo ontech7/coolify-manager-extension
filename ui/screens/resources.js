@@ -96,6 +96,15 @@ function resourceCard(resource, state) {
   </article>`;
 }
 
+/** The compact row of the dashboard's list. A row is one button: its badge isn't. */
+function resourceRow(resource, isSelected) {
+  const { uuid, resourceType, name, pending } = resource;
+  return html`<button class="d-row${isSelected ? " on" : ""}" data-action="select" data-uuid="${uuid}"${isSelected ? html` aria-current="true"` : ""}>
+    <div class="d-row-top"><span class="c-name">${name}</span>${statusBadge(pending?.kind ?? getResourceStatus(resource.status))}</div>
+    <div class="c-sub">${typeChip(resourceType)}<span>${resource.subtitle ?? ""}</span></div>
+  </button>`;
+}
+
 /** The screen of a resource's detail. */
 export function resourceRoute({ uuid, resourceType, name }) {
   return { screen: resourceType, uuid, name };
@@ -110,20 +119,34 @@ export function createResourcesScreen(ctx, route, opts = {}) {
   let searching = query !== "";
   let hasEntered = false;
   const busy = new Map();
+  const isRows = opts.variant === "rows";
+  let selectedUuid = opts.selectedUuid ?? null;
 
   const el = document.createElement("div");
   el.className = "screen";
   setHtml(
     el,
-    html`<div class="x-fixed" data-slot="fixed">
-        <div data-slot="summary"></div>
-        <div class="toolbar" data-slot="toolbar"></div>
-        <div data-slot="banner"></div>
-      </div>
-      <div class="x-scroll">
-        <div data-slot="state"></div>
-        <div class="list" data-slot="list"></div>
-      </div>`,
+    isRows
+      ? html`<div class="d-list-head">
+            <h2>Resources</h2>
+            <div data-slot="summary"></div>
+            <div data-slot="banner"></div>
+            <div class="toolbar" data-slot="toolbar"></div>
+            <input class="inp" id="resource-search" type="search" placeholder="Search…" aria-label="Search resources" autocomplete="off" />
+          </div>
+          <div class="d-rows">
+            <div data-slot="state"></div>
+            <div class="d-rows-list" data-slot="list"></div>
+          </div>`
+      : html`<div class="x-fixed" data-slot="fixed">
+            <div data-slot="summary"></div>
+            <div class="toolbar" data-slot="toolbar"></div>
+            <div data-slot="banner"></div>
+          </div>
+          <div class="x-scroll">
+            <div data-slot="state"></div>
+            <div class="list" data-slot="list"></div>
+          </div>`,
   );
 
   const slot = (name) => el.querySelector(`[data-slot="${name}"]`);
@@ -134,6 +157,7 @@ export function createResourcesScreen(ctx, route, opts = {}) {
     store.get().resources.find((resource) => resource.uuid === uuid);
 
   function renderCard(resource) {
+    if (isRows) return resourceRow(resource, resource.uuid === selectedUuid);
     return resourceCard(
       resource,
       resourceActionState(resource, {
@@ -144,7 +168,7 @@ export function createResourcesScreen(ctx, route, opts = {}) {
   }
 
   function toolbar(resources) {
-    if (searching) {
+    if (searching && !isRows) {
       const { searchLabel } = FILTERS.find((f) => f.key === filter);
       return html`<input class="inp" id="resource-search" type="search" placeholder="Search ${searchLabel}…" aria-label="Search ${searchLabel}" autocomplete="off" />${iconButton(
         { action: "search-close", icon: "x", label: "Close search" },
@@ -158,11 +182,10 @@ export function createResourcesScreen(ctx, route, opts = {}) {
           : resources.filter((r) => r.resourceType === key).length;
       return { value: key, label: `${label} ${count}` };
     });
-    return html`${filterChips(items, filter, "filter")}${iconButton({
-      action: "search-open",
-      icon: "search",
-      label: "Search",
-    })}`;
+    return html`${filterChips(items, filter, "filter")}${
+      !isRows &&
+      iconButton({ action: "search-open", icon: "search", label: "Search" })
+    }`;
   }
 
   function playEntrance() {
@@ -181,17 +204,17 @@ export function createResourcesScreen(ctx, route, opts = {}) {
     const { resources, isLoading, error } = store.get();
 
     if (isLoading || (error && resources.length === 0)) {
-      fixed.hidden = true;
+      if (fixed) fixed.hidden = true;
       setHtml(slot("state"), isLoading ? skeletonList() : errorState(error));
       renderKeyed(list, [], () => "", () => "");
       return;
     }
 
-    fixed.hidden = false;
+    if (fixed) fixed.hidden = false;
     setHtml(slot("summary"), statusSummary(resources));
     setHtml(slot("toolbar"), toolbar(resources));
     // A saved search comes back with its text.
-    const field = slot("toolbar").querySelector("input");
+    const field = el.querySelector("#resource-search");
     if (field && field.value !== query) field.value = query;
     setHtml(slot("banner"), error ? refreshErrorBanner(error) : "");
 
@@ -225,7 +248,7 @@ export function createResourcesScreen(ctx, route, opts = {}) {
     }
 
     renderKeyed(list, visible, (resource) => resource.uuid, renderCard);
-    if (!hasEntered && visible.length > 0) playEntrance();
+    if (!hasEntered && visible.length > 0 && !isRows) playEntrance();
   }
 
   function viewChanged() {
@@ -255,6 +278,10 @@ export function createResourcesScreen(ctx, route, opts = {}) {
   };
 
   delegate(el, {
+    select({ uuid }) {
+      const resource = findResource(uuid);
+      if (resource) opts.onSelect?.(resource);
+    },
     "open-resource": openResource,
     "open-deployment": ({ uuid, appUuid, name }) =>
       ctx.open({ screen: "deployment", uuid, appUuid, name }),
@@ -285,7 +312,7 @@ export function createResourcesScreen(ctx, route, opts = {}) {
     "search-open": () => {
       searching = true;
       render();
-      slot("toolbar").querySelector("input").focus();
+      el.querySelector("#resource-search").focus();
     },
     "search-close": () => {
       searching = false;
@@ -316,6 +343,18 @@ export function createResourcesScreen(ctx, route, opts = {}) {
   return {
     el,
     title: () => "Resources",
+    /** For a list next to a detail: which row is lit. */
+    setSelected(uuid) {
+      selectedUuid = uuid;
+      render();
+    },
+    /** For a view that arrives from elsewhere: the popup, or the address bar. */
+    setView(next) {
+      filter = next.filter;
+      query = next.query;
+      searching = query !== "";
+      render();
+    },
     refresh: ({ manual = false } = {}) => store.refresh({ manual }),
     activate: () => store.start(),
     deactivate: () => store.stop(),
