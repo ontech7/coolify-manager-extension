@@ -136,12 +136,36 @@
                 API
               </li>
               <li>Go to <em>Keys & Tokens → API Tokens</em></li>
-              <li>
+              <li class="perm-required">
                 Create a new token with permissions: <code>read</code>,
                 <code>write</code>, <code>deploy</code>
               </li>
             </ol>
+            <p class="perm-optional">
+              <span class="optional-label">Optional</span>
+              <code>read:sensitive</code> is only needed to see database
+              connection URLs, which contain the password. Without it, the rest
+              of the extension works the same.
+            </p>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label id="api-mode-label">Coolify Version</label>
+          <div
+            id="api-mode"
+            class="mode-selector"
+            role="group"
+            aria-labelledby="api-mode-label"
+          >
+            <button type="button" class="mode-option" data-mode="legacy">
+              &lt; 4.2.0
+            </button>
+            <button type="button" class="mode-option" data-mode="current">
+              &gt;= 4.2.0
+            </button>
+          </div>
+          <small id="api-mode-hint"></small>
         </div>
 
         <div class="button-group">

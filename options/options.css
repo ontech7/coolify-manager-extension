@@ -462,6 +462,51 @@ small {
   color: #fbbf24;
 }
 
+.help-box .perm-optional {
+  margin-top: var(--spacing-md);
+  color: var(--color-text-muted);
+}
+
+.help-box .optional-label {
+  margin-right: var(--spacing-xs);
+  padding: 1px var(--spacing-sm);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.mode-selector {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.mode-option {
+  flex: 1;
+  padding: var(--spacing-lg);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.mode-option:hover {
+  background: var(--color-surface-hover);
+}
+
+.mode-option.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
 .toggle-group {
   display: flex;
   justify-content: space-between;
