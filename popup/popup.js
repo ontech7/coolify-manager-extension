@@ -128,15 +128,20 @@ function renderHeader() {
 function renderTabs() {
   const tabs = slot("tabs");
   tabs.hidden = stack.length > 0 || !ctx?.instance;
+  // Drawn once and then only updated: the same pill has to slide.
+  if (!tabs.firstChild) {
+    setHtml(
+      tabs,
+      html`<span class="pill"></span>${TABS.map(
+        ({ key, icon: name, label }) =>
+          html`<button class="x-tab" role="tab" data-action="tab" data-value="${key}">${icon(name, 14)}${label}</button>`,
+      )}`,
+    );
+  }
+  for (const button of tabs.querySelectorAll(".x-tab")) {
+    button.setAttribute("aria-selected", String(button.dataset.value === tab));
+  }
   const index = TABS.findIndex(({ key }) => key === tab);
-  setHtml(
-    tabs,
-    html`<span class="pill"></span>${TABS.map(
-      ({ key, icon: name, label }) =>
-        html`<button class="x-tab" role="tab" aria-selected="${String(key === tab)}" data-action="tab" data-value="${key}">${icon(name, 14)}${label}</button>`,
-    )}`,
-  );
-  // Set after the markup, so the pill slides instead of jumping.
   tabs.querySelector(".pill").style.setProperty("--i", index);
 }
 

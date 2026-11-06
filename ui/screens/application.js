@@ -20,7 +20,12 @@ import {
 import { delegate, html, setHtml } from "../dom.js";
 import { icon } from "../icons.js";
 import { resourceBadge } from "./resources.js";
-import { createScrollScreen, isNotFound, watchResourcePending } from "./shared.js";
+import {
+  createScrollScreen,
+  isNotFound,
+  settleResourcePending,
+  watchResourcePending,
+} from "./shared.js";
 
 function applicationDetails(application) {
   const urls = splitFqdn(application.fqdn);
@@ -96,11 +101,13 @@ export function createApplicationScreen(ctx, route, { section, onHeaderChange } 
 
   async function load({ manual = false } = {}) {
     const request = ++lastRequest;
+    const fetchStartedAt = Date.now();
     try {
       const next = await ctx.api.getApplication(uuid);
       if (request !== lastRequest) return;
       application = next;
       error = null;
+      if (!section) settleResourcePending(ctx, { uuid, status: next.status }, fetchStartedAt);
     } catch (err) {
       if (request !== lastRequest) return;
       if (!application && isNotFound(err)) {
@@ -135,10 +142,15 @@ export function createApplicationScreen(ctx, route, { section, onHeaderChange } 
     title: () => application?.name ?? route.name ?? "Application",
     refresh: ({ manual = false } = {}) => load({ manual }),
     activate() {
-      stopWatching = watchResourcePending(ctx, uuid, (next) => {
-        pending = next;
-        render();
-      });
+      stopWatching = watchResourcePending(
+        ctx,
+        uuid,
+        (next) => {
+          pending = next;
+          render();
+        },
+        section ? null : load,
+      );
       return load();
     },
     deactivate() {
@@ -202,7 +214,7 @@ export function createHistoryScreen(ctx, route, opts = {}) {
           (deployment) => historyRow(deployment, uuid, name),
         )}</div>${
           hasMore &&
-          html`<button class="btn sec load-more" data-action="load-more"${isLoadingMore ? html` disabled` : ""}>${isLoadingMore ? icon("loader", 15) : ""}Load more</button>`
+          html`<button class="btn sec load-more${isLoadingMore ? " spin" : ""}" data-action="load-more"${isLoadingMore ? html` disabled` : ""}>${isLoadingMore ? icon("loader", 15) : ""}Load more</button>`
         }`,
       );
     }
@@ -288,6 +300,7 @@ export function createRollbackScreen(ctx, route) {
   let error = null;
   let isUnsupported = false;
   let rollingBack = null;
+  let destroyed = false;
 
   function render() {
     if (isLoading) {
@@ -343,6 +356,11 @@ export function createRollbackScreen(ctx, route) {
       const result = await ctx.actions.run("rollbackApplication", [uuid, tag], {
         label: `Roll back ${name ?? uuid}`,
       });
+      // The user has moved on: the answer mustn't move them somewhere else.
+      if (destroyed) {
+        ctx.dialogs.toast("Rollback queued.");
+        return;
+      }
       if (result?.deployment_uuid) {
         ctx.open(
           { screen: "deployment", uuid: result.deployment_uuid, appUuid: uuid, name },
@@ -388,6 +406,8 @@ export function createRollbackScreen(ctx, route) {
       if (rollingBack) return Promise.resolve();
       return load();
     },
-    destroy() {},
+    destroy() {
+      destroyed = true;
+    },
   };
 }

@@ -133,6 +133,54 @@ test("ensureApiMode detects current and saves it", async () => {
   assert.equal((await storedInstance("i1")).apiMode, "current");
 });
 
+test("a late answer doesn't overwrite a URL changed meanwhile", async () => {
+  const instance = await seedOn(v41);
+  await v41.control({ delayMs: 60 });
+
+  const detecting = ensureApiMode(instance);
+  await updateInstance({ ...instance, serverUrl: v43.url });
+
+  assert.equal(await detecting, "legacy");
+  const stored = await storedInstance("i1");
+  assert.equal(stored.serverUrl, v43.url);
+  assert.ok(!("apiMode" in stored));
+});
+
+test("a late answer doesn't overwrite a mode picked meanwhile", async () => {
+  const instance = await seedOn(v41);
+  await v41.control({ delayMs: 60 });
+
+  const detecting = ensureApiMode(instance);
+  await updateInstance({ ...instance, apiMode: "current" });
+  await detecting;
+
+  assert.equal((await storedInstance("i1")).apiMode, "current");
+});
+
+test("changes at the same moment don't lose each other", async () => {
+  await Promise.all([
+    addInstance({ name: "A", serverUrl: "http://a.lan", apiToken: "token-a" }),
+    addInstance({ name: "B", serverUrl: "http://b.lan", apiToken: "token-b" }),
+    addInstance({ name: "C", serverUrl: "http://c.lan", apiToken: "token-c" }),
+  ]);
+
+  const { instances } = await getConfig();
+  assert.deepEqual(instances.map((instance) => instance.name).sort(), ["A", "B", "C"]);
+});
+
+test("a detected mode that can't be saved is still used", async () => {
+  const instance = await seedOn(v41);
+  const { set } = chrome.storage.sync;
+  chrome.storage.sync.set = async () => {
+    throw new Error("QUOTA_BYTES_PER_ITEM quota exceeded");
+  };
+  try {
+    assert.equal(await ensureApiMode(instance), "legacy");
+  } finally {
+    chrome.storage.sync.set = set;
+  }
+});
+
 test("ensureApiMode falls back to current without saving when unreachable", async () => {
   const instance = { ...INSTANCE, serverUrl: "http://127.0.0.1:9" };
   await chrome.storage.sync.set({ instances: [instance], activeInstanceId: "i1" });

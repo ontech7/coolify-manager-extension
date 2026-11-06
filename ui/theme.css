@@ -195,6 +195,19 @@ h3 {
   color: var(--primary-light);
 }
 
+.x-foot .link {
+  flex: none;
+}
+
+/* A long instance name shrinks, so that Settings stays reachable. */
+.x-foot .link[data-action="open-instance"] {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sum {
   display: flex;
   flex-wrap: wrap;
@@ -887,6 +900,8 @@ pre.logs {
 .dlg {
   width: 100%;
   max-width: 340px;
+  max-height: 100%;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -903,6 +918,7 @@ pre.logs {
 }
 
 .dlg p {
+  overflow-wrap: anywhere;
   font-size: 13px;
   color: var(--text-secondary);
   white-space: pre-line;
@@ -921,6 +937,8 @@ pre.logs {
 }
 
 .toast {
+  /* It sits over the list for a moment, and mustn't take a click from it. */
+  pointer-events: none;
   position: absolute;
   left: 12px;
   right: 12px;
@@ -1004,8 +1022,14 @@ pre.logs {
   color: var(--text-muted);
 }
 
+.d-nav-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .d-inst b {
   display: block;
+  overflow-wrap: anywhere;
   color: var(--text-secondary);
   font-weight: 500;
 }

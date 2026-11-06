@@ -12,7 +12,12 @@ import {
 import { delegate, html, setHtml } from "../dom.js";
 import { icon } from "../icons.js";
 import { resourceBadge } from "./resources.js";
-import { createScrollScreen, isNotFound, watchResourcePending } from "./shared.js";
+import {
+  createScrollScreen,
+  isNotFound,
+  settleResourcePending,
+  watchResourcePending,
+} from "./shared.js";
 
 const containerName = (container) => container.human_name || container.name;
 
@@ -130,11 +135,13 @@ export function createServiceScreen(ctx, route, { section, onHeaderChange } = {}
 
   async function load() {
     const request = ++lastRequest;
+    const fetchStartedAt = Date.now();
     try {
       const next = await ctx.api.getService(uuid);
       if (request !== lastRequest) return;
       service = next;
       error = null;
+      if (!section) settleResourcePending(ctx, { uuid, status: next.status }, fetchStartedAt);
     } catch (err) {
       if (request !== lastRequest) return;
       if (!service && isNotFound(err)) {
@@ -230,10 +237,15 @@ export function createServiceScreen(ctx, route, { section, onHeaderChange } = {}
     title: () => service?.name ?? route.name ?? "Service",
     refresh: load,
     activate() {
-      stopWatching = watchResourcePending(ctx, uuid, (next) => {
-        pending = next;
-        render();
-      });
+      stopWatching = watchResourcePending(
+        ctx,
+        uuid,
+        (next) => {
+          pending = next;
+          render();
+        },
+        section ? null : load,
+      );
       return load();
     },
     deactivate() {

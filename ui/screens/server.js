@@ -67,7 +67,7 @@ export function createServerScreen(ctx, route, opts = {}) {
   let lastRequest = 0;
 
   function actionButton(key, action, iconName, label) {
-    return html`<button class="btn sec" data-action="${action}"${runningAction !== null ? html` disabled` : ""}>${icon(runningAction === key ? "loader" : iconName, 15)}${label}</button>`;
+    return html`<button class="btn sec${runningAction === key ? " spin" : ""}" data-action="${action}"${runningAction !== null ? html` disabled` : ""}>${icon(runningAction === key ? "loader" : iconName, 15)}${label}</button>`;
   }
 
   function render() {

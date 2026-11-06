@@ -135,17 +135,21 @@ export function createDeploymentScreen(ctx, route, opts = {}) {
     );
     setHtml(slot("details"), deploymentDetails(deployment));
 
-    slot("logs-head").hidden = !logs.text;
+    // Coolify leaves the field out for a token without read:sensitive.
+    const logsHidden = deployment.logs === undefined;
+    slot("logs-head").hidden = !logs.text && !logsHidden;
     slot("logs").hidden = !logs.text;
     setHtml(
       slot("logs-head"),
-      html`<span class="sec-t">Build Logs</span>${
-        logs.isTruncated && html`<span class="hint">Last ${LOG_LINES} lines</span>`
-      }${
-        logs.isTruncated &&
-        !active &&
-        html`<button class="lnkbtn" data-action="show-full-log">Show full log</button>`
-      }`,
+      logsHidden
+        ? html`<span class="hint">Build logs need an API token with the read:sensitive permission.</span>`
+        : html`<span class="sec-t">Build Logs</span>${
+            logs.isTruncated && html`<span class="hint">Last ${LOG_LINES} lines</span>`
+          }${
+            logs.isTruncated &&
+            !active &&
+            html`<button class="lnkbtn" data-action="show-full-log">Show full log</button>`
+          }`,
     );
 
     if (logText.textContent !== logs.text) {

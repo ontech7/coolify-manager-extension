@@ -7,9 +7,12 @@
  *   node test/mock-coolify/server.js --version 4.3.1 --port 4103
  *
  * Control endpoints, without auth:
- *   POST /__control {mode?, failPaths?, failStatus?, failMessage?, delayMs?, stateChangeDelayMs?, seed?}
- *     mode: "ok" | "html" (login page) | "hang" (never answers)
- *           | "stall" (headers, then nothing)
+ *   POST /__control {mode?, failPaths?, failStatus?, failMessage?, delayMs?, stateChangeDelayMs?, abilities?, skipDeployments?, seed?}
+ *     mode: "ok" | "html" (login page) | "object" (200 JSON that isn't a list)
+ *           | "hang" (never answers) | "stall" (headers, then nothing)
+ *     abilities: the token's permissions. Without read:sensitive, deployments
+ *           have no `logs` field and the log routes answer 403, as in Coolify v4.x.
+ *     skipDeployments: a matching deployment is already queued, so none is added.
  *     seed: {applications?, databases?, services?, deployments?, removeResources?}
  *   POST /__reset
  *   GET  /__requests → [{method, path, body}]
@@ -56,18 +59,27 @@ function createLogStore() {
   };
 }
 
-function publicDeployment(deployment, { withLogs = true } = {}) {
+function publicDeployment(deployment, withLogs) {
   // The real API doesn't say which application a deployment belongs to.
   const { lines, script, application_uuid: _application, ...fields } = deployment;
-  return {
-    ...fields,
-    logs: withLogs
-      ? JSON.stringify(lines.map((output) => ({ output, hidden: false })))
-      : null,
-  };
+  return withLogs
+    ? {
+        ...fields,
+        logs: JSON.stringify(lines.map((output) => ({ output, hidden: false }))),
+      }
+    : fields;
 }
 
-function createApi(version, stateChangeDelay) {
+function createApi(version, control) {
+  const stateChangeDelay = () => control().stateChangeDelayMs;
+  const can = (ability) => control().abilities.includes(ability);
+  const requireLogsPermission = () => {
+    if (!can("read:sensitive")) {
+      throw new ApiError(403, "Missing required permissions: read:sensitive");
+    }
+  };
+  const SKIPPED = "Deployment already queued for this commit.";
+
   let state = createFixtures();
   const logsFor = createLogStore();
   let nextId = 1;
@@ -163,6 +175,7 @@ function createApi(version, stateChangeDelay) {
       /^\/applications\/([^/]+)\/(start|restart)$/,
       ([uuid, action], { method }) => {
         requireActionMethod(method);
+        if (control().skipDeployments) return { message: SKIPPED };
         const deployment = startDeployment(application(uuid), {
           restart: action === "restart",
         });
@@ -185,8 +198,11 @@ function createApi(version, stateChangeDelay) {
       "GET",
       /^\/applications\/([^/]+)\/logs$/,
       ([uuid], { query }) => {
+        requireLogsPermission();
         const app = application(uuid);
-        if (!app.status.includes("running")) return { logs: "" };
+        if (!app.status.includes("running")) {
+          throw new ApiError(400, "Application is not running.");
+        }
         const lines = logsFor(uuid, "application");
         return { logs: lines.slice(-Number(query.get("lines") ?? 100)).join("\n") };
       },
@@ -230,6 +246,9 @@ function createApi(version, stateChangeDelay) {
         const uuid = method === "GET" ? query.get("uuid") : body?.uuid;
         const force =
           method === "GET" ? query.get("force") === "true" : body?.force === true;
+        if (control().skipDeployments) {
+          return { deployments: [{ message: SKIPPED, resource_uuid: uuid }] };
+        }
         const deployment = startDeployment(application(uuid), { force });
         return {
           deployments: [
@@ -250,7 +269,7 @@ function createApi(version, stateChangeDelay) {
       () =>
         state.deployments
           .filter((d) => d.status === "queued" || d.status === "in_progress")
-          .map((d) => publicDeployment(d, { withLogs: false })),
+          .map((d) => publicDeployment(d, can("read:sensitive"))),
     ],
     [
       "GET",
@@ -264,7 +283,7 @@ function createApi(version, stateChangeDelay) {
           count: all.length,
           deployments: all
             .slice(skip, skip + take)
-            .map((d) => publicDeployment(d, { withLogs: false })),
+            .map((d) => publicDeployment(d, can("read:sensitive"))),
         };
       },
     ],
@@ -291,7 +310,7 @@ function createApi(version, stateChangeDelay) {
         );
         if (!deployment) throw new ApiError(404, "Deployment not found.");
         advance(deployment);
-        return publicDeployment(deployment);
+        return publicDeployment(deployment, can("read:sensitive"));
       },
     ],
 
@@ -303,8 +322,11 @@ function createApi(version, stateChangeDelay) {
       /^\/databases\/([^/]+)\/logs$/,
       ([uuid], { query }) => {
         requireSince42();
+        requireLogsPermission();
         const db = database(uuid);
-        if (!db.status.includes("running")) return { logs: "" };
+        if (!db.status.includes("running")) {
+          throw new ApiError(400, "Database is not running.");
+        }
         const lines = logsFor(uuid, "database");
         return { logs: lines.slice(-Number(query.get("lines") ?? 100)).join("\n") };
       },
@@ -364,13 +386,16 @@ function createApi(version, stateChangeDelay) {
       /^\/services\/([^/]+)\/logs$/,
       ([uuid], { query }) => {
         requireSince42();
+        requireLogsPermission();
         const svc = service(uuid);
         const name = query.get("sub_service_name");
         const container = [...svc.applications, ...svc.databases].find(
           (entry) => entry.name === name,
         );
         if (!container) throw new ApiError(404, "Sub-service not found.");
-        if (!container.status.includes("running")) return { logs: "" };
+        if (!container.status.includes("running")) {
+          throw new ApiError(404, "Container not found.");
+        }
         const lines = logsFor(`${uuid}/${name}`, "service").map(
           (line) => `[${name}] ${line}`,
         );
@@ -515,9 +540,11 @@ export async function startMockCoolify({
     failMessage: "Server Error",
     delayMs: 0,
     stateChangeDelayMs: STATE_CHANGE_DELAY,
+    abilities: ["read", "read:sensitive", "write", "deploy"],
+    skipDeployments: false,
   };
   let control = { ...initialControl };
-  const api = createApi(version, () => control.stateChangeDelayMs);
+  const api = createApi(version, () => control);
   let requests = [];
 
   const prefix = `${basePath}/api/v1`;
@@ -572,6 +599,9 @@ export async function startMockCoolify({
     if (control.mode === "html") {
       response.writeHead(200, { "Content-Type": "text/html" });
       return response.end("<!doctype html><title>Log in</title>");
+    }
+    if (control.mode === "object") {
+      return sendJson(response, 200, { message: "A gateway's own JSON" });
     }
 
     if (request.headers.authorization !== `Bearer ${TEST_TOKEN}`) {

@@ -86,8 +86,40 @@ test("deploy returns the queued deployment", async () => {
 });
 
 test("startApplication returns the deployment uuid", async () => {
-  assert.match(await apiOn(v43).startApplication("a-api"), /^dep-new-/);
-  assert.match(await apiOn(v43).restartApplication("a-store"), /^dep-new-/);
+  const { deployment_uuid: started } = await apiOn(v43).startApplication("a-api");
+  assert.match(started, /^dep-new-/);
+  const { deployment_uuid: restarted } = await apiOn(v43).restartApplication("a-store");
+  assert.match(restarted, /^dep-new-/);
+});
+
+test("a deployment Coolify skipped returns its message", async () => {
+  await v43.control({ skipDeployments: true });
+  assert.deepEqual(await apiOn(v43).startApplication("a-api"), {
+    message: "Deployment already queued for this commit.",
+  });
+});
+
+test("a list answered with something else is an unexpected response", async () => {
+  await v43.control({ mode: "object" });
+  for (const name of ["getApplications", "getDatabases", "getServices", "getServers", "getDeployments"]) {
+    await assert.rejects(apiOn(v43)[name](), /Unexpected response from server/, name);
+  }
+});
+
+test("testConnection fails on JSON that isn't the list", async () => {
+  await v43.control({ mode: "object" });
+  const result = await apiOn(v43).testConnection();
+  assert.equal(result.success, false);
+  assert.match(result.error, /Unexpected response/);
+});
+
+test("credentials in the URL never reach an error message", async () => {
+  const url = v43.url.replace("http://", "http://user:s3cret@");
+  await assert.rejects(new CoolifyAPI(url, TEST_TOKEN).getApplications(), (error) => {
+    assert.equal(error.message.includes("s3cret"), false, error.message);
+    assert.match(error.message, /Unable to connect/);
+    return true;
+  });
 });
 
 test("getVersion strips the v and returns null on 401", async () => {

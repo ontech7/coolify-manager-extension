@@ -77,6 +77,19 @@ export function resourceActionState(resource, { legacy = false, busy = null } = 
  * Runs a method through the service worker. Failures show in a dialog, once
  * the buttons are back. Resolves with `{ok, data}`.
  */
+/** Coolify can skip a deployment, e.g. one is already queued for this commit. */
+const QUEUES_DEPLOYMENT = new Set([
+  "startApplication",
+  "restartApplication",
+  "deployApplication",
+]);
+
+function skippedMessage(method, data) {
+  if (!QUEUES_DEPLOYMENT.has(method)) return null;
+  const answer = data?.deployments?.[0] ?? data;
+  return answer?.deployment_uuid ? null : answer?.message;
+}
+
 async function run(ctx, resource, busy, verb, method, args, options) {
   options.setBusy?.(busy);
   let result;
@@ -92,6 +105,8 @@ async function run(ctx, resource, busy, verb, method, args, options) {
   options.setBusy?.(null);
 
   if (!result.ok) await ctx.dialogs.alert("Error", result.message);
+  const skipped = result.ok && skippedMessage(method, result.data);
+  if (skipped) ctx.dialogs.toast(skipped);
   return result;
 }
 

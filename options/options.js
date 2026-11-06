@@ -39,6 +39,7 @@ let formMode = "idle"; // "idle" | "add" | "edit"
 let editingInstanceId = null;
 let isSaving = false;
 let isTesting = false;
+let testRun = 0;
 // null: nothing picked or detected yet. Saved like that, the mode is detected
 // from the server on the first connection.
 let apiMode = null;
@@ -121,6 +122,7 @@ function renderInstances() {
 
 function setFormMode(newMode, instance) {
   formMode = newMode;
+  testRun++;
   hideStatus();
   form.reset();
   resetTokenVisibility();
@@ -186,6 +188,10 @@ function validateServerUrl(url) {
     const parsed = new URL(url);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       return "Server URL must start with http:// or https://";
+    }
+    // Browsers refuse them, and they would end up on screen.
+    if (parsed.username || parsed.password) {
+      return "Enter the server URL without a username or password";
     }
   } catch (error) {
     return "Please enter a valid URL (e.g.: https://coolify.example.com)";
@@ -358,6 +364,8 @@ async function testConnection() {
     return;
   }
 
+  // A result only counts for the form it was asked for: see clearTestResult.
+  const run = ++testRun;
   isTesting = true;
   testConnectionBtn.disabled = true;
   testConnectionBtn.innerHTML = `
@@ -371,9 +379,12 @@ async function testConnection() {
   try {
     const api = new CoolifyAPI(serverUrl, apiToken);
     const result = await api.testConnection();
+    if (run !== testRun) return;
 
     if (result.success) {
       const version = await api.getVersion();
+      if (run !== testRun) return;
+
       const atLeast = version
         ? isVersionAtLeast(version, POST_ACTIONS_MIN_VERSION)
         : null;
@@ -392,7 +403,7 @@ async function testConnection() {
       showStatus(`✗ ${result.error || "Connection failed"}`, "error");
     }
   } catch (error) {
-    showStatus(`✗ ${error.message}`, "error");
+    if (run === testRun) showStatus(`✗ ${error.message}`, "error");
   } finally {
     isTesting = false;
     testConnectionBtn.disabled = false;
@@ -407,6 +418,7 @@ async function testConnection() {
 }
 
 function clearTestResult() {
+  testRun++;
   hideStatus();
   apiModeHint.textContent = API_MODE_HINT;
 }

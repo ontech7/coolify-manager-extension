@@ -1,5 +1,7 @@
 import { AUTO_REFRESH_INTERVAL, LOG_LINES } from "../../lib/constants.js";
+import { HttpError } from "../../lib/coolify-api.js";
 import { createPoller } from "../../lib/poll.js";
+import { isResourceRunning } from "../../lib/status.js";
 import { errorState, filterChips, loadingState } from "../components.js";
 import { createLogFollower, delegate, html, setHtml } from "../dom.js";
 import { icon } from "../icons.js";
@@ -7,6 +9,11 @@ import { isNotFound } from "./shared.js";
 
 const NO_LOGS = "No logs available";
 const NO_CONTAINERS = "This service has no containers.";
+
+/** How Coolify answers for logs of what isn't running: not a failure. */
+const isNotRunning = (error) =>
+  error instanceof HttpError &&
+  /^(\w+ is not running|container not found)\.?$/i.test(error.message);
 
 /**
  * Logs of an application, a database or one container of a service. They load
@@ -114,11 +121,16 @@ export function createLogsScreen(ctx, route, opts = {}) {
       showLogs(result.logs || NO_LOGS);
     } catch (err) {
       if (request !== lastRequest) return;
+      isLoading = false;
+      if (isNotRunning(err)) {
+        error = null;
+        showLogs(err.message);
+        return;
+      }
       if (!hasLogs && isNotFound(err)) {
         ctx.notFound(route);
         return;
       }
-      isLoading = false;
       error = err.message;
       render();
     }
@@ -131,6 +143,7 @@ export function createLogsScreen(ctx, route, opts = {}) {
       containers = [...(service.applications ?? []), ...(service.databases ?? [])];
       container =
         containers.find((item) => item.uuid === route.container) ??
+        containers.find((item) => isResourceRunning(item.status)) ??
         containers[0] ??
         null;
       if (!container) {

@@ -155,7 +155,7 @@ function hostOf(url) {
 }
 
 function resourceButton(action, iconName, label, state) {
-  return html`<button class="btn sec" data-action="${action}"${state.disabled || state.loading ? html` disabled` : ""}>${icon(state.loading ? "loader" : iconName, 14)}${label}</button>`;
+  return html`<button class="btn sec${state.loading ? " spin" : ""}" data-action="${action}"${state.disabled || state.loading ? html` disabled` : ""}>${icon(state.loading ? "loader" : iconName, 14)}${label}</button>`;
 }
 
 function resourceHead() {
@@ -168,13 +168,16 @@ function resourceHead() {
     busy: busy.get(uuid) ?? null,
   });
   const isStop = actions.startStop.kind === "stop";
+  // Not in the list (yet): its status isn't known, and nothing could act on it.
+  const button = (action, iconName, label, state) =>
+    resourceButton(action, iconName, label, resource ? state : { ...state, disabled: true });
 
   return html`<h2>${name}</h2>${resource && resourceBadge(resource)}
     <div class="grp">
-      ${actions.deploy.show && resourceButton("deploy", "rocket", "Deploy", actions.deploy)}
-      ${actions.pull.show && resourceButton("pull", "cloud", "Pull latest", actions.pull)}
-      ${resourceButton("restart", "restart", "Restart", actions.restart)}
-      ${resourceButton("start-stop", isStop ? "stop" : "play", isStop ? "Stop" : "Start", actions.startStop)}
+      ${actions.deploy.show && button("deploy", "rocket", "Deploy", actions.deploy)}
+      ${actions.pull.show && button("pull", "cloud", "Pull latest", actions.pull)}
+      ${button("restart", "restart", "Restart", actions.restart)}
+      ${button("start-stop", isStop ? "stop" : "play", isStop ? "Stop" : "Start", actions.startStop)}
       ${actions.site.show && iconButton({ action: "site", icon: "ext", label: "Open website", disabled: actions.site.disabled })}
       ${detail?.screen.headerActions?.()}
       ${refreshButton()}
@@ -505,7 +508,7 @@ function bindEvents() {
       try {
         await Promise.all([
           detail.screen.refresh({ manual: true }),
-          view.nav === "resources" ? store.refresh() : null,
+          shownList?.refresh?.(),
         ]);
       } finally {
         isRefreshing = false;

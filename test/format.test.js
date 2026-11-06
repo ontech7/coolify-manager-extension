@@ -26,6 +26,24 @@ test("maskUrlPassword handles an unencoded @ in the password", () => {
   assert.equal(maskUrlPassword("postgres://u:p@ss@h/db"), "postgres://u:•••@h/db");
 });
 
+test("maskUrlPassword hides a password that has no username", () => {
+  assert.equal(maskUrlPassword("redis://S3CRET@abc123:6379/0"), "redis://•••@abc123:6379/0");
+  assert.equal(maskUrlPassword("rediss://S3CRET@abc:6380/0"), "rediss://•••@abc:6380/0");
+  assert.equal(maskUrlPassword("redis://:S3CRET@abc:6379/0"), "redis://:•••@abc:6379/0");
+});
+
+test("maskUrlPassword hides the password of any shape of URL", () => {
+  for (const [url, masked] of [
+    ["u:S3CRET@h:5432/db", "u:•••@h:5432/db"],
+    ["my_db://u:S3CRET@h", "my_db://u:•••@h"],
+    ["postgres://u:a/S3CRET@h/db", "postgres://u:•••@h/db"],
+    ["postgres://a@b:S3CRET@h/db", "postgres://a@b:•••@h/db"],
+    ["postgres://u:S3C\nRET@h/db", "postgres://u:•••@h/db"],
+  ]) {
+    assert.equal(maskUrlPassword(url), masked, url);
+  }
+});
+
 test("maskUrlPassword leaves a url without credentials alone", () => {
   assert.equal(maskUrlPassword("redis://h:6379"), "redis://h:6379");
 });

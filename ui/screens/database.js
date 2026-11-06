@@ -16,7 +16,12 @@ import {
 import { delegate, html, setHtml } from "../dom.js";
 import { icon } from "../icons.js";
 import { resourceBadge } from "./resources.js";
-import { createScrollScreen, isNotFound, watchResourcePending } from "./shared.js";
+import {
+  createScrollScreen,
+  isNotFound,
+  settleResourcePending,
+  watchResourcePending,
+} from "./shared.js";
 
 function databaseDetails(database) {
   const internal = database.internal_db_url;
@@ -143,6 +148,7 @@ export function createDatabaseScreen(ctx, route, { section, onHeaderChange } = {
 
   async function load() {
     const request = ++lastRequest;
+    const fetchStartedAt = Date.now();
     const [db, list] = await Promise.allSettled([
       ctx.api.getDatabase(uuid),
       showBackups ? ctx.api.getDatabaseBackups(uuid) : Promise.resolve([]),
@@ -152,6 +158,9 @@ export function createDatabaseScreen(ctx, route, { section, onHeaderChange } = {
     if (db.status === "fulfilled") {
       database = db.value;
       error = null;
+      if (!section) {
+        settleResourcePending(ctx, { uuid, status: db.value.status }, fetchStartedAt);
+      }
     } else {
       if (!database && isNotFound(db.reason)) {
         ctx.notFound(route);
@@ -223,10 +232,15 @@ export function createDatabaseScreen(ctx, route, { section, onHeaderChange } = {
     title: () => database?.name ?? route.name ?? "Database",
     refresh: load,
     activate() {
-      stopWatching = watchResourcePending(ctx, uuid, (next) => {
-        pending = next;
-        render();
-      });
+      stopWatching = watchResourcePending(
+        ctx,
+        uuid,
+        (next) => {
+          pending = next;
+          render();
+        },
+        section ? null : load,
+      );
       return load();
     },
     deactivate() {

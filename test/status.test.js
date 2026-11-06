@@ -20,13 +20,32 @@ test("resource statuses normalize like the app", () => {
   assert.equal(getResourceStatus("RUNNING:HEALTHY"), "running:healthy");
 });
 
+test("a degraded resource is running and unhealthy", () => {
+  for (const status of ["degraded:unhealthy", "degraded", "unhealthy"]) {
+    assert.equal(getResourceStatus(status), "running:unhealthy", status);
+  }
+  assert.equal(isResourceRunning("degraded:unhealthy"), true);
+  assert.deepEqual(summarizeStatuses([{ status: "degraded:unhealthy" }]), {
+    running: 0,
+    unhealthy: 1,
+    stopped: 0,
+  });
+});
+
+test("a container on its way up is starting", () => {
+  for (const status of ["starting:unknown", "restarting:unknown"]) {
+    assert.equal(getResourceStatus(status), "starting", status);
+    assert.equal(isResourceRunning(status), true, status);
+  }
+});
+
 test("a missing or unknown resource status is unknown", () => {
   assert.equal(getResourceStatus(undefined), "unknown");
   assert.equal(getResourceStatus(""), "unknown");
   assert.equal(getResourceStatus("weird"), "unknown");
 });
 
-test("isResourceRunning looks for running only", () => {
+test("isResourceRunning is false for what isn't up", () => {
   assert.equal(isResourceRunning("running:unhealthy"), true);
   assert.equal(isResourceRunning("exited"), false);
   assert.equal(isResourceRunning(undefined), false);

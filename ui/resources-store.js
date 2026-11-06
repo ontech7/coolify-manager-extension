@@ -12,8 +12,8 @@ import {
 import { createPoller } from "../lib/poll.js";
 import { mergeResources } from "../lib/resources.js";
 
-const valueOf = (settled) =>
-  settled.status === "fulfilled" ? settled.value : null;
+const valueOf = (settled, fallback = null) =>
+  settled.status === "fulfilled" ? settled.value : fallback;
 
 /**
  * All the resources of the instance, the port of the app's useResources. Each
@@ -25,6 +25,8 @@ export function createResourcesStore(ctx) {
   const instanceId = ctx.instance.id;
   const listeners = new Set();
 
+  // The last good answer of each list: applications, databases, services.
+  let lists = [null, null, null];
   let resources = [];
   let pending = {};
   let isLoading = true;
@@ -61,17 +63,19 @@ export function createResourcesStore(ctx) {
     ]);
     if (request !== lastRequest) return;
 
-    const merged = mergeResources(valueOf(apps), valueOf(dbs), valueOf(svcs));
-    const failed = [apps, dbs, svcs].every((r) => r.status === "rejected");
-
-    // Everything failed: keep what is listed, under the banner.
-    if (!failed) resources = merged;
-    error = failed ? apps.reason.message : null;
+    // A list that failed keeps what it had, under the banner: polling must
+    // never make resources disappear.
+    const answers = [apps, dbs, svcs];
+    lists = answers.map((answer, index) => valueOf(answer, lists[index]));
+    resources = mergeResources(...lists);
+    error = answers.find((answer) => answer.status === "rejected")?.reason.message ?? null;
     isLoading = false;
     isRefreshing = false;
 
+    // Only this answer can tell that Coolify has caught up.
+    const fresh = mergeResources(valueOf(apps), valueOf(dbs), valueOf(svcs));
     pending = await updatePending(instanceId, (current) =>
-      prunePending(current, merged, valueOf(active), fetchStartedAt),
+      prunePending(current, fresh, valueOf(active), fetchStartedAt),
     );
     if (request === lastRequest) notify();
   }

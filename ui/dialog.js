@@ -12,14 +12,17 @@ function element(tag, className, text) {
  * of the screen below never closes them.
  */
 export function createDialogs(root) {
-  let closeOpen = null;
+  let lastDialog = Promise.resolve();
   let toastNode = null;
   let toastTimer = null;
 
-  function confirm({ title, message, buttons }) {
-    // One at a time: a new dialog answers the open one with "no choice".
-    closeOpen?.(null);
+  /** One at a time: a new one waits, as the open one may be an unread error. */
+  function confirm(options) {
+    lastDialog = lastDialog.then(() => show(options));
+    return lastDialog;
+  }
 
+  function show({ title, message, buttons }) {
     return new Promise((resolve) => {
       const previousFocus = document.activeElement;
 
@@ -31,12 +34,10 @@ export function createDialogs(root) {
       dialog.append(element("h3", "", title), element("p", "", message));
 
       const close = (value) => {
-        closeOpen = null;
         wrap.remove();
         previousFocus?.focus?.();
         resolve(value);
       };
-      closeOpen = close;
 
       const row = element("div", "dlg-btns");
       const nodes = buttons.map(({ label, kind, value }) => {
@@ -64,7 +65,9 @@ export function createDialogs(root) {
 
       wrap.append(dialog);
       root.append(wrap);
-      nodes[nodes.length - 1]?.focus();
+      // The safe choice: Enter pressed twice mustn't confirm what this warns about.
+      const safe = buttons.findIndex(({ kind }) => (kind ?? "plain") === "plain");
+      nodes[safe === -1 ? nodes.length - 1 : safe]?.focus();
     });
   }
 

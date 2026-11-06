@@ -73,8 +73,8 @@ function fakeApi(value) {
 
 // The pending table of the plan.
 const PENDING_CASES = [
-  ["startApplication", ["a"], "dep-1", { kind: "deploying", deploymentUuid: "dep-1" }],
-  ["restartApplication", ["a"], "dep-1", { kind: "deploying", deploymentUuid: "dep-1" }],
+  ["startApplication", ["a"], { deployment_uuid: "dep-1" }, { kind: "deploying", deploymentUuid: "dep-1" }],
+  ["restartApplication", ["a"], { deployment_uuid: "dep-1" }, { kind: "deploying", deploymentUuid: "dep-1" }],
   [
     "deployApplication",
     ["a"],
@@ -340,6 +340,92 @@ test("the client throws UnsupportedVersionError when unsupported", async () => {
       return true;
     },
   );
+});
+
+const stopRequests = async (mock) =>
+  (await mock.requests())
+    .filter((request) => request.path === "/api/v1/databases/d-pg/stop")
+    .map((request) => request.method);
+
+const STOP = { instanceId: "i1", action: "stopDatabase", args: ["d-pg"], label: "Stop" };
+
+test("a saved legacy mode recovers when the server has been upgraded", async () => {
+  await seed(v43, { apiMode: "legacy" });
+
+  const result = await handleRunAction(STOP);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(await stopRequests(v43), ["GET", "POST"]);
+  const { instances } = await chrome.storage.sync.get("instances");
+  assert.equal(instances[0].apiMode, "current");
+});
+
+test("a saved current mode recovers on an older server", async () => {
+  await seed(v41, { apiMode: "current" });
+
+  const result = await handleRunAction(STOP);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(await stopRequests(v41), ["POST", "GET"]);
+});
+
+test("a 405 with the right mode stays an error", async () => {
+  await seed(v43);
+  await v43.control({
+    failPaths: ["/databases/d-pg/stop"],
+    failStatus: 405,
+    failMessage: "No.",
+  });
+
+  const result = await handleRunAction(STOP);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.message, "No.");
+  assert.deepEqual(await stopRequests(v43), ["POST"]);
+});
+
+test("a storage failure still gets an answer", async () => {
+  const { get } = chrome.storage.sync;
+  chrome.storage.sync.get = async () => {
+    throw new Error("Storage is down");
+  };
+  try {
+    const result = await handleRunAction(STOP);
+    assert.equal(result.ok, false);
+    assert.equal(result.message, "Storage is down");
+  } finally {
+    chrome.storage.sync.get = get;
+  }
+});
+
+test("a deployment Coolify skipped leaves no pending entry", async () => {
+  await seed(v43);
+  await v43.control({ skipDeployments: true });
+
+  const result = await handleRunAction({
+    instanceId: "i1",
+    action: "startApplication",
+    args: ["a-api"],
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.data.message, "Deployment already queued for this commit.");
+  assert.deepEqual(await readPending("i1"), {});
+});
+
+test("the client says so when the message itself fails", async () => {
+  const { sendMessage } = chrome.runtime;
+  chrome.runtime.sendMessage = async () => {
+    throw new Error("A listener indicated an asynchronous response");
+  };
+  try {
+    await assert.rejects(
+      createActionsClient("i1").run("stopDatabase", ["d-pg"]),
+      /did not answer/i,
+    );
+  } finally {
+    chrome.runtime.sendMessage = sendMessage;
+  }
 });
 
 test("the client turns a missing answer into an error", async () => {
