@@ -462,12 +462,12 @@ small {
   color: #fbbf24;
 }
 
-.help-box .perm-optional {
+.help-box .perm-note {
   margin-top: var(--spacing-md);
   color: var(--color-text-muted);
 }
 
-.help-box .optional-label {
+.help-box .note-label {
   margin-right: var(--spacing-xs);
   padding: 1px var(--spacing-sm);
   border: 1px solid var(--color-surface-border);

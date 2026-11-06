@@ -51,7 +51,7 @@ You can download it from [here](https://chromewebstore.google.com/detail/coolify
 ## Configure Your Server
 
 1. Enable API Access in Coolify (Settings → Advanced → API Access).
-2. Create an API token with `read`, `write`, and `deploy` permissions. `read:sensitive` is optional: it is only needed to see database connection URLs, which contain the password.
+2. Create an API token with `read`, `read:sensitive`, `write`, and `deploy` permissions. `read:sensitive` gives access to logs and to database connection URLs, which contain passwords. Without it those aren't available, and the rest of the extension works the same.
 3. In the extension, open Settings, enter the server URL (https://coolify.example.com), paste the token, test the connection, and save. Testing also detects the Coolify version.
 
 ## License & Credits

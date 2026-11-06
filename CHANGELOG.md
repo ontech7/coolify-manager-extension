@@ -12,9 +12,9 @@
 - Database backups: scheduled backups with their last run (status, time, size) and a "Back up now" action (Coolify >= 4.2)
 - Service details: containers with status, image and URLs, plus per-container restart, start/stop and logs (Coolify >= 4.2)
 - Pull latest images for services
-- Database logs and per-container service logs (Coolify >= 4.2), with live tail on every log
+- Database logs and per-container service logs (Coolify >= 4.2), with live tail on every log; logs need a token with `read:sensitive`
 - Server quick actions: restart proxy and Docker cleanup (Coolify >= 4.3)
-- Coolify version selector in settings, detected when testing the connection
+- Coolify version selector in settings, detected when testing the connection, and again if a server refuses an action after being upgraded
 
 ### Fixes
 - Actions use POST on Coolify >= 4.2, where start, stop, restart, deploy and validate no longer worked; older servers keep GET

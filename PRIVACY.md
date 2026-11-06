@@ -4,11 +4,11 @@ _Last updated: November 6, 2026_
 
 ## Overview
 
-Coolify Manager is a browser extension that allows users to manage their cloud or self-hosted [Coolify](https://coolify.io/) applications directly from the browser. This privacy policy describes how the extension handles user data. All rights are 
+Coolify Manager is a browser extension that allows users to manage their cloud or self-hosted [Coolify](https://coolify.io/) applications directly from the browser. This privacy policy describes how the extension handles user data.
 
 ## Data collection
 
-Coolify Manager does **not** collect, transmit, or share any personal data with the developer or any third party. There are no analytics, telemetry, tracking scripts, or advertising frameworks embedded in the extension.
+The developer receives no data from Coolify Manager. There are no analytics, telemetry, tracking scripts, or advertising frameworks embedded in the extension. The only third party involved is Google, through Chrome sync and Google Fonts, as described below.
 
 ## Data stored by the extension
 
@@ -41,13 +41,13 @@ The extension communicates **exclusively** with the Coolify server URLs that you
 - List and validate servers, read their details and resources, restart their proxy and run a Docker cleanup.
 - Retrieve application logs and deployment history, and cancel deployments.
 
-With a token that has the optional `read:sensitive` permission, Coolify also returns database connection URLs, which contain passwords. They are only shown in the extension, with the password masked, and copied to your clipboard when you ask. They are not stored.
+With a token that has the `read:sensitive` permission, Coolify also returns logs and database connection URLs, which contain passwords. Logs are only shown in the extension. Connection URLs are shown with the password masked, and copied to your clipboard when you ask. Neither is stored.
 
-No data is sent to any other server, domain, or third-party service, with the exception noted below.
+The extension sends no data to any other server, domain, or third-party service, with the exception noted below. Chrome sync, described above, is done by Chrome.
 
 ## External resources
 
-The extension loads the "DM Sans" font from **Google Fonts** (`fonts.googleapis.com` and `fonts.gstatic.com`). This request includes your IP address and user agent but does not include any personal data or extension configuration. This is the only external connection made by the extension.
+The extension loads the "DM Sans" font from **Google Fonts** (`fonts.googleapis.com` and `fonts.gstatic.com`). Like any web request, this one includes your IP address and user agent. It does not include any extension configuration. This is the only external connection made by the extension.
 
 ## Permissions
 
@@ -60,9 +60,10 @@ The broad host permission is required because Coolify is a self-hosted platform 
 
 ## Data sharing
 
-Coolify Manager does **not** sell, transfer, or disclose any user data to third parties. No data leaves your browser except for:
+Coolify Manager does **not** sell any user data. Data leaves your browser only through:
 - API requests sent directly to your own Coolify server(s).
-- Font loading from Google Fonts (which only receives your IP address and user agent, no personal or configuration data).
+- Chrome sync, which copies your settings, API tokens included, through your Google account when sync is on.
+- Font loading from Google Fonts, which receives your IP address and user agent, and no configuration data.
 
 ## Data security
 

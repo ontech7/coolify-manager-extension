@@ -138,14 +138,15 @@
               <li>Go to <em>Keys & Tokens → API Tokens</em></li>
               <li class="perm-required">
                 Create a new token with permissions: <code>read</code>,
-                <code>write</code>, <code>deploy</code>
+                <code>read:sensitive</code>, <code>write</code>,
+                <code>deploy</code>
               </li>
             </ol>
-            <p class="perm-optional">
-              <span class="optional-label">Optional</span>
-              <code>read:sensitive</code> is only needed to see database
-              connection URLs, which contain the password. Without it, the rest
-              of the extension works the same.
+            <p class="perm-note">
+              <span class="note-label">Note</span>
+              <code>read:sensitive</code> gives access to logs and to database
+              connection URLs, which contain passwords. Without it those aren't
+              available, and the rest of the extension works the same.
             </p>
           </div>
         </div>
@@ -216,8 +217,9 @@
             <p>
               <strong>Official Coolify API.</strong> This extension communicates
               with your servers exclusively through the official Coolify API.
-              Your credentials stay in your browser and are sent only to the
-              instances you configure.
+              Your credentials are kept in Chrome's synced storage, which
+              follows your Google account, and the extension sends them only
+              to the instances you configure.
             </p>
             <p>
               <strong>Not a replacement for Coolify.</strong> Coolify Manager is
