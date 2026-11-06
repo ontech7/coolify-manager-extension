@@ -1,5 +1,3 @@
-import { errorState } from "../components.js";
-import { setHtml } from "../dom.js";
 import {
   createApplicationScreen,
   createHistoryScreen,
@@ -10,19 +8,9 @@ import { createDeploymentScreen } from "./deployment.js";
 import { createDeploymentsScreen } from "./deployments.js";
 import { createLogsScreen } from "./logs.js";
 import { createResourcesScreen } from "./resources.js";
+import { createServerScreen } from "./server.js";
+import { createServersScreen } from "./servers.js";
 import { createServiceScreen } from "./service.js";
-
-function createPendingScreen(route) {
-  const el = document.createElement("div");
-  el.className = "screen";
-  setHtml(el, errorState("This screen is not available yet."));
-  return {
-    el,
-    title: () => route.name ?? route.screen,
-    refresh: async () => {},
-    destroy() {},
-  };
-}
 
 /** The screen of a route. Every surface builds its screens through here. */
 export function createScreen(ctx, route, opts) {
@@ -45,7 +33,11 @@ export function createScreen(ctx, route, opts) {
       return createDeploymentScreen(ctx, route, opts);
     case "deployments":
       return createDeploymentsScreen(ctx, route, opts);
+    case "servers":
+      return createServersScreen(ctx, route, opts);
+    case "server":
+      return createServerScreen(ctx, route, opts);
     default:
-      return createPendingScreen(route);
+      throw new Error(`Unknown screen: ${route.screen}`);
   }
 }

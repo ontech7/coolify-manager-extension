@@ -1298,3 +1298,11 @@ body {
 .logs-chips {
   padding-bottom: 10px;
 }
+
+.server-address {
+  color: var(--text-muted);
+}
+
+.server-health {
+  margin-bottom: 12px;
+}
